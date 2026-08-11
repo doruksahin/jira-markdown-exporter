@@ -24,6 +24,7 @@ the same executable examples rather than describing an aspirational design.
 | Fetching boundary | [snapshot DTO](src/domain/board-snapshot.ts), [reader port](src/ports/board-issue-reader.ts), and [Jira adapter](src/jira/jira-board-issue-reader.ts) | A provider returns `BoardIssueSnapshot`; the writer never imports Jira response types. |
 | Partial results | [runner](src/runner/run-export.ts) and [runner regression](test/core/run-export.test.ts) | If `ATT-1` succeeds and `ATT-2` fails, keep `ATT-1` on disk and return a `partial` receipt. |
 | Markdown layout and attachments | [work-os-v1 writer](src/output/work-os-v1-writer.ts) and [writer regression](test/core/work-os-v1-writer.test.ts) | Attachment IDs `20` and `21` named `design.png` become distinct files; ambiguous filename-only links stay untouched. |
+| Output profiles and templates | [profile guide](docs/output-profiles.md), [built-in manifest](profiles/work-os-v1/profile.json), and [profile regression](test/core/output-profile.test.ts) | `work-os-v1` is the default; a local profile can render `ATT-123/Jira Snapshot/Summary.md` without a TypeScript fork. |
 | Jira pagination, media, and origin safety | [Jira adapter regression](test/jira/jira-board-issue-reader.test.ts) | Follow Jira pagination, fetch all comments, and reject an attachment URL such as `https://evil.example/file`. |
 | Release contents | [package manifest](package.json) and [release check](#public-github-versus-npm-publishing) | `pnpm release:check` builds, tests, and previews precisely the files named in `package.json#files`. |
 
@@ -130,6 +131,20 @@ Use `--jql '<query>'` instead of `--issue-keys` to select issues with Jira
 Query Language. Add `--download-attachments` to write binaries below the owned
 `attachments/` directory. The CLI is read-only against Jira.
 
+### Select an output profile
+
+The default profile is the existing, Work OS-compatible `work-os-v1` layout.
+Passing it explicitly produces the same packet:
+
+```bash
+jira-markdown-export --issue-keys ATT-123 --output-dir /path/to/packets --profile work-os-v1
+```
+
+To use a locally checked-out profile, pass `--template-dir` instead. Its
+`profile.json` manifest and Liquid templates define only rendered Markdown;
+the exporter still owns atomic writes, attachment downloading, and path safety.
+See the concrete `ATT-123` profile in [the output-profile guide](docs/output-profiles.md).
+
 In JSON mode, the final stdout line conforms to
 [schemas/export-receipt.schema.json](schemas/export-receipt.schema.json).
 Exit status `0` means every issue synced, `2` means a partial per-issue result,
@@ -161,7 +176,7 @@ examples as public compatibility behavior.
 
 This repository can be public on GitHub without being published to npm.
 GitHub is the source of truth; npm is the installation channel for stable CLI
-releases. The npm archive will contain only `dist/`, `schemas/`, and the
+releases. The npm archive will contain only `dist/`, `profiles/`, `schemas/`, and the
 declared documentation files from `package.json`'s `files` list. Source code,
 tests, vault data, local `.env` files, and downloaded Jira attachments are not
 published.

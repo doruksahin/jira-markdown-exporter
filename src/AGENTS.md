@@ -25,9 +25,11 @@ versioned npm archive.
 - `runner/` combines the port and output profile. Example:
   [`runner/run-export.ts`](runner/run-export.ts) isolates a failure for
   `ATT-2` instead of discarding a completed `ATT-1` export.
-- `output/` owns only generated filesystem layout. Example:
-  [`output/work-os-v1-writer.ts`](output/work-os-v1-writer.ts) replaces one
-  `40 Jira` directory through a staging directory; it does not touch `00 Task.md`.
+- `output/` owns generated filesystem layout and profile rendering. Example:
+  [`output/profile-writer.ts`](output/profile-writer.ts) replaces one selected
+  profile directory through a staging directory; it does not touch `00 Task.md`.
+  [`output/work-os-v1-writer.ts`](output/work-os-v1-writer.ts) is a compatibility
+  wrapper selecting the versioned templates in `../profiles/work-os-v1/`.
 - `cli/` translates arguments and exit codes only. Example:
   [`cli/main.ts`](cli/main.ts) accepts exactly one of `--issue-keys` and
   `--jql`, then delegates to `runExport`.
@@ -61,6 +63,9 @@ to the string in `jira/adf-to-markdown.ts`, store that string in
   test.
 - Pagination: a repeated Jira enhanced-search token throws rather than looping.
   See the first adapter test before changing token handling.
+- Output profiles: keep `contentUrl` out of `template-model.ts`; it is a
+  download-layer value. Validate new manifest fields in `output-profile.ts`,
+  document them in `docs/output-profiles.md`, and add a profile regression.
 - Public output: Any added receipt property must be reflected in
   `domain/export-result.ts`, `schemas/export-receipt.schema.json`, CLI tests,
   and `README.md`.

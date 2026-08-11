@@ -20,6 +20,10 @@ Use the closest existing example instead of creating a new test style:
 - Jira adapter behavior: inject a mocked `fetch` into `JiraBoardIssueReader`,
   as in [`jira/jira-board-issue-reader.test.ts`](jira/jira-board-issue-reader.test.ts).
   The test must not call a real Jira instance or require credentials.
+- Output-profile behavior: start with
+  [`core/output-profile.test.ts`](core/output-profile.test.ts). Its `compact-v1`
+  fixture proves a checked-out local profile writes `ATT-123/Jira Snapshot/Summary.md`,
+  while its unsafe-manifest case proves `../00 Task.md` is rejected.
 
 When adding a test, assert observable contract:
 

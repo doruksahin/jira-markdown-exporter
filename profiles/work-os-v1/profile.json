@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schemas/output-profile.schema.json",
+  "id": "work-os-v1",
+  "schemaVersion": 1,
+  "ownedDirectory": "40 Jira",
+  "attachmentsDirectory": "attachments",
+  "files": [
+    { "template": "00 Issue.md.liquid", "output": "00 Issue.md" },
+    { "template": "10 Comments.md.liquid", "output": "10 Comments.md" },
+    { "template": "20 Attachments.md.liquid", "output": "20 Attachments.md" },
+    { "template": "90 Sync.md.liquid", "output": "90 Sync.md" }
+  ]
+}

@@ -107,6 +107,7 @@ Start from a concrete behavior and its existing test:
 | Change request | Start here | Required proof |
 |---|---|---|
 | New Markdown field or layout | `src/output/work-os-v1-writer.ts` | Extend `test/core/work-os-v1-writer.test.ts`; verify no file outside `40 Jira` changes. |
+| Markdown layout or a reusable packet variant | `profiles/<profile>/profile.json` + `.liquid` templates | Extend `test/core/output-profile.test.ts`; preserve the `ATT-123/00 Task.md` ownership regression. |
 | Jira REST field, pagination, or ADF behavior | `src/jira/jira-board-issue-reader.ts` | Extend `test/jira/jira-board-issue-reader.test.ts` with mocked `fetch`. |
 | Selector, flag, exit-code, or JSON receipt change | `src/cli/main.ts` + schema | Extend `test/jira/cli.test.ts` and update `schemas/export-receipt.schema.json` and `README.md`. |
 | Retry/partial failure behavior | `src/runner/run-export.ts` | Extend `test/core/run-export.test.ts` using `FakeReader`. |
@@ -138,5 +139,6 @@ For scope and compatibility decisions, consult these repository records before
 inventing a new contract:
 
 - [`docs/extraction-plan.md`](docs/extraction-plan.md) — extraction boundary and migration intent.
+- [`docs/output-profiles.md`](docs/output-profiles.md) — manifest, template model, and `ATT-123` local-profile example.
 - [`decree/adr/exporter/adr-01kzr66763mx33yrfbw9exwjaq-preserve-work-os-v1-as-the-initial-output-profile.md`](decree/adr/exporter/adr-01kzr66763mx33yrfbw9exwjaq-preserve-work-os-v1-as-the-initial-output-profile.md) — why the initial layout stays `work-os-v1`.
 - [`decree/spec/exporter/spec-01kzr6678ktm854ejtmbjz2gqj-implement-standalone-jira-markdown-exporter-v1.md`](decree/spec/exporter/spec-01kzr6678ktm854ejtmbjz2gqj-implement-standalone-jira-markdown-exporter-v1.md) — implemented v1 scope.

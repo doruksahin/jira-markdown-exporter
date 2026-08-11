@@ -1,0 +1,15 @@
+---
+type: jira-generated-attachments
+jira_key: {{ issue.key }}
+jira_updated: {{ issue.updated | yaml }}
+generated_by: jira-markdown-exporter
+attachment_count: {{ attachments.size }}
+---
+# {{ issue.key }} · Attachments
+
+{% include 'partials/notice.liquid' %}
+| Name | MIME | Size | Author | Created | Yerel dosya |
+|---|---|---:|---|---|---|
+{% if attachments.size > 0 %}{% for attachment in attachments %}| {{ attachment.filename | tableCell }} | {{ attachment.mimeType | tableCell }} | {{ attachment.size | formatBytes }} | {{ attachment.author | tableCell }} | {{ attachment.created | default: '—' }} | {% if attachment.localPath != blank %}[aç](<{{ attachment.localPath }}>){% else %}indirilmedi{% endif %} |
+{% endfor %}{% else %}| _Attachment yok_ | — | — | — | — | — |
+{% endif %}

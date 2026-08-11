@@ -1,0 +1,16 @@
+---
+type: jira-generated-issue
+jira_key: {{ issue.key }}
+jira_updated: {{ issue.updated | yaml }}
+generated_by: jira-markdown-exporter
+---
+# {{ issue.key }} · {{ issue.summary }}
+
+{% include 'partials/notice.liquid' %}
+| Field | Value |
+|---|---|
+{% for field in issue.metadata %}| {{ field.name }} | {{ field.value | tableCell }} |
+{% endfor %}
+## Description
+
+{% if issue.description != blank %}{{ issue.description }}{% else %}_Jira açıklaması yok._{% endif %}

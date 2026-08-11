@@ -1,7 +1,8 @@
 import { errorMessage } from '../domain/errors.js';
 import { normalizeIssueKey } from '../domain/board-snapshot.js';
 import type { ExportResult, ExportedIssueResult } from '../domain/export-result.js';
-import { writeWorkOsV1Snapshot } from '../output/work-os-v1-writer.js';
+import { loadOutputProfile } from '../output/output-profile.js';
+import { writeOutputProfileSnapshot } from '../output/profile-writer.js';
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 
 export interface RunExportOptions {
@@ -9,17 +10,23 @@ export interface RunExportOptions {
   readonly issueKeys?: readonly string[];
   readonly jql?: string;
   readonly downloadAttachments?: boolean;
+  /** Built-in profile name; defaults to the byte-compatible `work-os-v1`. */
+  readonly profile?: string;
+  /** Explicit local profile directory containing `profile.json` and templates. */
+  readonly templateDir?: string;
 }
 
 /** Fetches and writes each issue independently; one failed issue never rolls back another. */
 export async function runExport(reader: BoardIssueReader, options: RunExportOptions): Promise<ExportResult> {
+  const profile = await loadOutputProfile({ profile: options.profile, templateDir: options.templateDir });
   const keys = await resolveIssueKeys(reader, options);
   const issues: ExportedIssueResult[] = [];
   for (const key of keys) {
     try {
       const issue = await reader.fetchIssue(key);
-      const written = await writeWorkOsV1Snapshot(issue, {
+      const written = await writeOutputProfileSnapshot(issue, {
         outputDir: options.outputDir,
+        profile,
         downloadAttachments: options.downloadAttachments,
         downloadAttachment: reader.downloadAttachment.bind(reader),
       });

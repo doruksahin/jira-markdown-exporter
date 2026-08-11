@@ -1,0 +1,19 @@
+---
+type: jira-generated-sync
+jira_key: {{ issue.key }}
+jira_updated: {{ issue.updated | yaml }}
+generated_by: jira-markdown-exporter
+---
+# {{ issue.key }} · Sync metadata
+
+{% include 'partials/notice.liquid' %}
+- **Jira updated:** {{ issue.updated | default: '—' }}
+- **Comments:** {{ comments.size }}
+- **Attachments:** {{ sync.attachmentCount }}
+- **Downloaded binaries:** {{ sync.downloadedAttachments }}
+
+## Warnings
+
+{% if sync.warnings.size > 0 %}{% for warning in sync.warnings %}- {{ warning }}
+{% endfor %}{% else %}- Yok.
+{% endif %}

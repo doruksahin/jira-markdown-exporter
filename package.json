@@ -13,11 +13,16 @@
   "bugs": {
     "url": "https://github.com/doruksahin/jira-markdown-exporter/issues"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "packageManager": "pnpm@10.33.0",
-  "bin": { "jira-markdown-export": "dist/cli/main.js" },
+  "bin": {
+    "jira-markdown-export": "dist/cli/main.js"
+  },
   "files": [
     "dist",
+    "profiles",
     "schemas",
     "README.md",
     "AGENTS.md"
@@ -38,7 +43,8 @@
   "dependencies": {
     "adf-to-md": "^1.2.1",
     "dotenv": "^17.4.2",
-    "jira.js": "^5.3.1"
+    "jira.js": "^5.3.1",
+    "liquidjs": "^10.28.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/doruksahin/jira-markdown-exporter/schemas/output-profile.schema.json",
+  "title": "Jira Markdown Exporter output profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "schemaVersion", "ownedDirectory", "attachmentsDirectory", "files"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "minLength": 1 },
+    "schemaVersion": { "const": 1 },
+    "ownedDirectory": { "type": "string", "minLength": 1 },
+    "attachmentsDirectory": { "type": "string", "minLength": 1 },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["template", "output"],
+        "properties": {
+          "template": { "type": "string", "minLength": 1, "pattern": "\\.liquid$" },
+          "output": { "type": "string", "minLength": 1, "pattern": "\\.md$" }
+        }
+      }
+    }
+  }
+}
