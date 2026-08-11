@@ -108,7 +108,7 @@ download development dependencies and are not a stable release channel.
 
 ### 3. Use it from Obsidian Work OS
 
-Set **Jira Markdown dışa aktarıcı** to the local checkout path, for example:
+Set **Jira Markdown exporter** to the local checkout path, for example:
 
 ```text
 /Users/you/Code/jira-markdown-exporter
