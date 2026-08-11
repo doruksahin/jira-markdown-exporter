@@ -7,7 +7,7 @@ comment_count: 0
 ---
 # ATT-123 · Comments
 
-> [!warning] Jira tarafından üretilir
-> Bu klasördeki dosyaları elle düzenleme; bir sonraki sync değişiklikleri yeniler.
+> [!warning] Generated from Jira
+> Do not edit files in this folder; the next sync replaces generated changes.
 
-_Bu issue için görünür yorum yok._
+_No visible comments for this issue._

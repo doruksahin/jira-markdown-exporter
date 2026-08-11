@@ -103,7 +103,7 @@ async function writeAttachmentBinaries(
   await mkdir(attachmentDir, { recursive: true });
   for (const attachment of sortedAttachments(issue.attachments)) {
     if (!attachment.contentUrl) {
-      warnings.push(`${attachment.filename}: Jira content URL yok`);
+      warnings.push(`${attachment.filename}: Jira attachment content URL is unavailable`);
       continue;
     }
     const safeName = attachmentStorageName(attachment);
@@ -140,7 +140,7 @@ function replaceMarkdownTarget(source: string, target: string, localTarget: stri
   const escaped = escapeRegExp(target);
   const link = new RegExp(`(!?\\[[^\\]]*\\]\\()<?${escaped}>?(\\))`, 'g');
   return source.replace(link, (_match, prefix: string, suffix: string) => (
-    localTarget ? `${prefix}<${localTarget}>${suffix}` : `> [!warning] Görsel indirilemedi: ${filename}`
+    localTarget ? `${prefix}<${localTarget}>${suffix}` : `> [!warning] Image could not be downloaded: ${filename}`
   ));
 }
 

@@ -8,8 +8,8 @@ attachment_count: {{ attachments.size }}
 # {{ issue.key }} · Attachments
 
 {% include 'partials/notice.liquid' %}
-| Name | MIME | Size | Author | Created | Yerel dosya |
+| Name | MIME | Size | Author | Created | Local file |
 |---|---|---:|---|---|---|
-{% if attachments.size > 0 %}{% for attachment in attachments %}| {{ attachment.filename | tableCell }} | {{ attachment.mimeType | tableCell }} | {{ attachment.size | formatBytes }} | {{ attachment.author | tableCell }} | {{ attachment.created | default: '—' }} | {% if attachment.localPath != blank %}[aç](<{{ attachment.localPath }}>){% else %}indirilmedi{% endif %} |
-{% endfor %}{% else %}| _Attachment yok_ | — | — | — | — | — |
+{% if attachments.size > 0 %}{% for attachment in attachments %}| {{ attachment.filename | tableCell }} | {{ attachment.mimeType | tableCell }} | {{ attachment.size | formatBytes }} | {{ attachment.author | tableCell }} | {{ attachment.created | default: '—' }} | {% if attachment.localPath != blank %}[open](<{{ attachment.localPath }}>){% else %}not downloaded{% endif %} |
+{% endfor %}{% else %}| _No attachments_ | — | — | — | — | — |
 {% endif %}

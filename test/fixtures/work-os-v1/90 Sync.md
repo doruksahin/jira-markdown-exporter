@@ -6,8 +6,8 @@ generated_by: jira-markdown-exporter
 ---
 # ATT-123 · Sync metadata
 
-> [!warning] Jira tarafından üretilir
-> Bu klasördeki dosyaları elle düzenleme; bir sonraki sync değişiklikleri yeniler.
+> [!warning] Generated from Jira
+> Do not edit files in this folder; the next sync replaces generated changes.
 
 - **Jira updated:** 2026-08-02T00:00:00.000Z
 - **Comments:** 0
@@ -16,4 +16,4 @@ generated_by: jira-markdown-exporter
 
 ## Warnings
 
-- Yok.
+- None.

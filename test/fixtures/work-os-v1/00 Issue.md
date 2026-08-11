@@ -6,8 +6,8 @@ generated_by: jira-markdown-exporter
 ---
 # ATT-123 · A fixture
 
-> [!warning] Jira tarafından üretilir
-> Bu klasördeki dosyaları elle düzenleme; bir sonraki sync değişiklikleri yeniler.
+> [!warning] Generated from Jira
+> Do not edit files in this folder; the next sync replaces generated changes.
 
 | Field | Value |
 |---|---|

@@ -65,9 +65,9 @@ function metadata(issue: BoardIssueSnapshot): readonly TemplateMetadata[] {
 function toTemplateComment(comment: BoardCommentSnapshot): TemplateComment {
   return {
     id: comment.id || '—', author: comment.author, created: comment.created || '—',
-    date: comment.created ? comment.created.slice(0, 10) : 'Tarih yok',
-    updatedNote: comment.updated && comment.updated !== comment.created ? ` · güncellendi ${comment.updated}` : '',
-    body: comment.body || '_Boş yorum._',
+    date: comment.created ? comment.created.slice(0, 10) : 'No date',
+    updatedNote: comment.updated && comment.updated !== comment.created ? ` · updated ${comment.updated}` : '',
+    body: comment.body || '_No comment body._',
   };
 }
 

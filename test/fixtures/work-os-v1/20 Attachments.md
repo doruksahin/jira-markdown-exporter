@@ -7,9 +7,9 @@ attachment_count: 1
 ---
 # ATT-123 · Attachments
 
-> [!warning] Jira tarafından üretilir
-> Bu klasördeki dosyaları elle düzenleme; bir sonraki sync değişiklikleri yeniler.
+> [!warning] Generated from Jira
+> Do not edit files in this folder; the next sync replaces generated changes.
 
-| Name | MIME | Size | Author | Created | Yerel dosya |
+| Name | MIME | Size | Author | Created | Local file |
 |---|---|---:|---|---|---|
-| design.png | image/png | 2.0 KB | Designer | 2026-08-02T00:00:00.000Z | [aç](<attachments/20-design.png>) |
+| design.png | image/png | 2.0 KB | Designer | 2026-08-02T00:00:00.000Z | [open](<attachments/20-design.png>) |
