@@ -3,9 +3,9 @@
 Read the root [`AGENTS.md`](../AGENTS.md) first. This file narrows its rules to
 `src/`.
 
-After a runtime source change, run `pnpm build` and commit the matching
-generated files under `../dist/`. The public `pnpm dlx github:…` installation
-path executes that committed CLI without allowing a Git lifecycle script.
+After a runtime source change, run `pnpm build` to validate the release output.
+Do not commit the generated `../dist/` files; `prepack` creates them for the
+versioned npm archive.
 
 ## Layer ownership, with real examples
 

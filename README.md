@@ -59,26 +59,28 @@ pnpm export --issue-keys ATT-1,ATT-2 --output-dir /path/to/packets --json
 `pnpm export` runs [`src/cli/main.ts`](src/cli/main.ts) through `tsx`. This is
 the clearest route when changing or debugging the exporter.
 
-### 2. Run directly from the public GitHub repository — no clone required
+### 2. Install the released CLI globally — best for normal use
+
+After the first npm release, install the versioned package once:
+
+```bash
+npm install --global @doruksahin/jira-markdown-exporter
+jira-markdown-export --help
+```
+
+The `bin` field installs `jira-markdown-export` into your global PATH. Use it
+with local Jira credentials:
 
 ```bash
 JIRA_HOST=https://example.atlassian.net \
 JIRA_EMAIL=you@example.com \
 JIRA_API_TOKEN=... \
-pnpm dlx github:doruksahin/jira-markdown-exporter \
-  --issue-keys ATT-5215 \
-  --output-dir /path/to/packets \
-  --json
+jira-markdown-export --issue-keys ATT-5215 --output-dir /path/to/packets --json
 ```
 
-The repository includes its prebuilt `dist/` CLI so this works without allowing
-an install script to run from a Git dependency. If you run this command often,
-install it once instead:
-
-```bash
-pnpm add --global github:doruksahin/jira-markdown-exporter
-jira-markdown-export --help
-```
+Until that first release exists, use the source-checkout path above. Do not use
+`pnpm dlx github:…` as the primary installation method: Git dependencies may
+download development dependencies and are not a stable release channel.
 
 ### 3. Use it from Obsidian Work OS
 
@@ -117,19 +119,19 @@ that previously invoked the embedded Work OS exporter with `tsx`.
 ## Public GitHub versus npm publishing
 
 This repository can be public on GitHub without being published to npm.
-GitHub installation uses the examples above and is appropriate while the CLI
-contract is still evolving. The committed `dist/` directory is intentional:
-it makes `pnpm dlx github:…` work in pnpm's default secure mode, which rejects
-Git dependency lifecycle scripts unless the consumer explicitly allowlists
-them.
+GitHub is the source of truth; npm is the installation channel for stable CLI
+releases. The npm archive will contain only `dist/`, `schemas/`, and the
+declared documentation files from `package.json`'s `files` list. Source code,
+tests, vault data, local `.env` files, and downloaded Jira attachments are not
+published.
 
-Publishing to npm is a separate, deliberate release step. Before doing it,
-choose a license, remove `"private": true`, decide a stable package name and
-versioning policy, publish only built/package-safe files, and release from a
-clean tagged commit. Do not publish credentials, local `.env` files, Obsidian
-vault content, or downloaded Jira attachments. Until that decision is made,
-the package remains intentionally private to npm while its source is public on
-GitHub.
+The package is intentionally blocked from publishing today by `"private":
+true` and `"license": "UNLICENSED"`. Before the first release, choose a
+license, verify that `@doruksahin/jira-markdown-exporter` is available on the
+public npm registry, authenticate to npm, remove the publish block, run
+`pnpm release:check`, tag `v0.1.0`, and publish from that clean commit. The
+explicit `publishConfig.registry` prevents an accidental publish to GitHub
+Packages when a developer's local npm registry is configured there.
 
 ## Initial contract
 

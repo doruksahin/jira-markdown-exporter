@@ -1,8 +1,9 @@
 {
-  "name": "@adcreative/jira-markdown-exporter",
+  "name": "@doruksahin/jira-markdown-exporter",
   "version": "0.1.0",
   "description": "Read-only Jira issue snapshots as deterministic Markdown packets.",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "repository": {
     "type": "git",
@@ -13,13 +14,26 @@
     "url": "https://github.com/doruksahin/jira-markdown-exporter/issues"
   },
   "engines": { "node": ">=20" },
+  "packageManager": "pnpm@10.33.0",
   "bin": { "jira-markdown-export": "dist/cli/main.js" },
+  "files": [
+    "dist",
+    "schemas",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && vitest run",
     "check": "pnpm typecheck && pnpm test",
-    "export": "tsx src/cli/main.ts"
+    "export": "tsx src/cli/main.ts",
+    "prepack": "pnpm build",
+    "release:check": "pnpm check && npm pack --dry-run"
   },
   "dependencies": {
     "adf-to-md": "^1.2.1",
