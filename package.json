@@ -1,5 +1,5 @@
 {
-  "name": "@doruksahin/jira-markdown-exporter",
+  "name": "jira-markdown-exporter",
   "version": "0.1.0",
   "description": "Read-only Jira issue snapshots as deterministic Markdown packets.",
   "private": true,

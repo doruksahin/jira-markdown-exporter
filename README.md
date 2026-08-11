@@ -64,7 +64,7 @@ the clearest route when changing or debugging the exporter.
 After the first npm release, install the versioned package once:
 
 ```bash
-npm install --global @doruksahin/jira-markdown-exporter
+npm install --global jira-markdown-exporter
 jira-markdown-export --help
 ```
 
@@ -127,8 +127,8 @@ published.
 
 The package is intentionally blocked from publishing today by `"private":
 true` and `"license": "UNLICENSED"`. Before the first release, choose a
-license, verify that `@doruksahin/jira-markdown-exporter` is available on the
-public npm registry, authenticate to npm, remove the publish block, run
+license, verify that `jira-markdown-exporter` is still available on the public
+npm registry, authenticate to npm, remove the publish block, run
 `pnpm release:check`, tag `v0.1.0`, and publish from that clean commit. The
 explicit `publishConfig.registry` prevents an accidental publish to GitHub
 Packages when a developer's local npm registry is configured there.

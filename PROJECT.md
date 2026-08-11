@@ -19,7 +19,7 @@ writing changes back to Jira.
 ## Distribution boundary
 
 GitHub is the source repository. The intended end-user installation channel is
-the versioned public npm package `@doruksahin/jira-markdown-exporter`, which
+the versioned public npm package `jira-markdown-exporter`, which
 exposes the `jira-markdown-export` command through `package.json#bin`.
 
 The package is not published yet. `package.json` deliberately has
