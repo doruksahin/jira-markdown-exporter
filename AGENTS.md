@@ -125,8 +125,12 @@ pnpm check
 ```
 
 It runs TypeScript typechecking, builds `dist/`, and executes the Vitest suite.
-Do not commit `dist/`, `node_modules/`, or credentials; all are intentionally
-ignored. Report verification with the actual command and result, for example:
+`dist/` is intentionally committed because the public GitHub installation path
+must not rely on consumers permitting a Git dependency's lifecycle script. When
+a change to `src/` affects runtime output, run `pnpm build` and commit the
+matching generated `dist/` files in the same change. Never edit `dist/` by
+hand. Do not commit `node_modules/` or credentials. Report verification with
+the actual command and result, for example:
 `pnpm check — 12 tests passed`.
 
 For scope and compatibility decisions, consult these repository records before

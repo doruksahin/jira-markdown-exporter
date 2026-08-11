@@ -3,6 +3,10 @@
 Read the root [`AGENTS.md`](../AGENTS.md) first. This file narrows its rules to
 `src/`.
 
+After a runtime source change, run `pnpm build` and commit the matching
+generated files under `../dist/`. The public `pnpm dlx github:…` installation
+path executes that committed CLI without allowing a Git lifecycle script.
+
 ## Layer ownership, with real examples
 
 - `domain/` contains portable values and result types. Example:

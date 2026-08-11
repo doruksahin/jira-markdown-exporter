@@ -71,8 +71,9 @@ pnpm dlx github:doruksahin/jira-markdown-exporter \
   --json
 ```
 
-The repository's `prepare` script builds `dist/` during a Git-based install.
-If you run this command often, install it once instead:
+The repository includes its prebuilt `dist/` CLI so this works without allowing
+an install script to run from a Git dependency. If you run this command often,
+install it once instead:
 
 ```bash
 pnpm add --global github:doruksahin/jira-markdown-exporter
@@ -117,7 +118,10 @@ that previously invoked the embedded Work OS exporter with `tsx`.
 
 This repository can be public on GitHub without being published to npm.
 GitHub installation uses the examples above and is appropriate while the CLI
-contract is still evolving.
+contract is still evolving. The committed `dist/` directory is intentional:
+it makes `pnpm dlx github:…` work in pnpm's default secure mode, which rejects
+Git dependency lifecycle scripts unless the consumer explicitly allowlists
+them.
 
 Publishing to npm is a separate, deliberate release step. Before doing it,
 choose a license, remove `"private": true`, decide a stable package name and

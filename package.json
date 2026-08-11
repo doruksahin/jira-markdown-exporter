@@ -20,7 +20,7 @@
     "test": "pnpm build && vitest run",
     "check": "pnpm typecheck && pnpm test",
     "export": "tsx src/cli/main.ts",
-    "prepare": "pnpm build"
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "adf-to-md": "^1.2.1",
