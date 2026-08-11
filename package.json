@@ -19,8 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && vitest run",
     "check": "pnpm typecheck && pnpm test",
-    "export": "tsx src/cli/main.ts",
-    "prepack": "pnpm build"
+    "export": "tsx src/cli/main.ts"
   },
   "dependencies": {
     "adf-to-md": "^1.2.1",
