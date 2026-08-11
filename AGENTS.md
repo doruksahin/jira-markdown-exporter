@@ -140,5 +140,6 @@ inventing a new contract:
 
 - [`docs/extraction-plan.md`](docs/extraction-plan.md) — extraction boundary and migration intent.
 - [`docs/output-profiles.md`](docs/output-profiles.md) — manifest, template model, and `ATT-123` local-profile example.
+- [`profiles/AGENTS.md`](profiles/AGENTS.md) — direct template-authoring rules, `ATT-123` golden files, and the `compact-v1` regression pattern.
 - [`decree/adr/exporter/adr-01kzr66763mx33yrfbw9exwjaq-preserve-work-os-v1-as-the-initial-output-profile.md`](decree/adr/exporter/adr-01kzr66763mx33yrfbw9exwjaq-preserve-work-os-v1-as-the-initial-output-profile.md) — why the initial layout stays `work-os-v1`.
 - [`decree/spec/exporter/spec-01kzr6678ktm854ejtmbjz2gqj-implement-standalone-jira-markdown-exporter-v1.md`](decree/spec/exporter/spec-01kzr6678ktm854ejtmbjz2gqj-implement-standalone-jira-markdown-exporter-v1.md) — implemented v1 scope.

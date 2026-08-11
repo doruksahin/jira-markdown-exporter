@@ -30,7 +30,8 @@ the same executable examples rather than describing an aspirational design.
 
 For source-level layer rules, read [src/AGENTS.md](src/AGENTS.md). For the
 test style and the temporary-directory fixtures behind the examples above,
-read [test/AGENTS.md](test/AGENTS.md).
+read [test/AGENTS.md](test/AGENTS.md). For a template-only change, begin in
+[profiles/AGENTS.md](profiles/AGENTS.md).
 
 ## Before you install or run it
 
