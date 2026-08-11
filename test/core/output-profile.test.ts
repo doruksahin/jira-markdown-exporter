@@ -64,7 +64,10 @@ function fixtureIssue(): BoardIssueSnapshot {
     key: 'ATT-123', url: 'https://example.test/browse/ATT-123', summary: 'A fixture',
     description: '![design](./attachments/design.png)', status: 'In Progress', issueType: 'Task', priority: 'Medium',
     assignee: 'Doruk', reporter: 'PM', created: '2026-08-01T00:00:00.000Z', updated: '2026-08-02T00:00:00.000Z',
-    labels: ['zeta', 'alpha'], parentKey: '', comments: [], attachments: [{
+    labels: ['zeta', 'alpha'], parentKey: '', linkedIssues: [{
+      relationship: 'blocks', key: 'ATT-456', url: 'https://example.test/browse/ATT-456', summary: 'A linked fixture',
+      status: 'To Do', issueType: 'Bug', assignee: 'Teammate',
+    }], comments: [], attachments: [{
       id: '20', filename: 'design.png', mimeType: 'image/png', size: 2048, author: 'Designer',
       created: '2026-08-02T00:00:00.000Z', contentUrl: 'https://example.test/content/20', isImage: true, inlineInDescription: true,
     }],

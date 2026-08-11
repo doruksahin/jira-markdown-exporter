@@ -1,4 +1,4 @@
-import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
+import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueLinkSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
 
 export interface ExportTemplateModel {
   readonly issue: {
@@ -10,6 +10,7 @@ export interface ExportTemplateModel {
     readonly metadata: readonly TemplateMetadata[];
   };
   readonly comments: readonly TemplateComment[];
+  readonly linkedIssues: readonly TemplateIssueLink[];
   readonly attachments: readonly TemplateAttachment[];
   readonly sync: {
     readonly attachmentCount: number;
@@ -20,6 +21,7 @@ export interface ExportTemplateModel {
 
 export interface TemplateMetadata { readonly name: string; readonly value: string; }
 export interface TemplateComment { readonly id: string; readonly author: string; readonly created: string; readonly date: string; readonly updatedNote: string; readonly body: string; }
+export interface TemplateIssueLink { readonly relationship: string; readonly key: string; readonly url: string; readonly summary: string; readonly status: string; readonly issueType: string; readonly assignee: string; }
 export interface TemplateAttachment { readonly id: string; readonly filename: string; readonly mimeType: string; readonly size: number | null; readonly author: string; readonly created: string; readonly localPath: string; }
 
 /**
@@ -42,6 +44,7 @@ export function createExportTemplateModel(
       metadata: metadata(issue),
     },
     comments: [...issue.comments].sort(compareComments).map(toTemplateComment),
+    linkedIssues: [...issue.linkedIssues].sort(compareIssueLinks).map(toTemplateIssueLink),
     attachments: sortedAttachments(issue.attachments).map((attachment) => ({
       id: attachment.id, filename: attachment.filename, mimeType: attachment.mimeType,
       size: attachment.size, author: attachment.author, created: attachment.created,
@@ -71,10 +74,21 @@ function toTemplateComment(comment: BoardCommentSnapshot): TemplateComment {
   };
 }
 
+function toTemplateIssueLink(link: BoardIssueLinkSnapshot): TemplateIssueLink {
+  return {
+    relationship: link.relationship || 'Linked issue', key: link.key, url: link.url,
+    summary: link.summary || '—', status: link.status || '—', issueType: link.issueType || '—', assignee: link.assignee || '—',
+  };
+}
+
 export function sortedAttachments(attachments: readonly BoardAttachmentSnapshot[]): readonly BoardAttachmentSnapshot[] {
   return [...attachments].sort((left, right) => left.id.localeCompare(right.id) || left.filename.localeCompare(right.filename));
 }
 
 function compareComments(left: BoardCommentSnapshot, right: BoardCommentSnapshot): number {
   return left.created.localeCompare(right.created) || left.id.localeCompare(right.id);
+}
+
+function compareIssueLinks(left: BoardIssueLinkSnapshot, right: BoardIssueLinkSnapshot): number {
+  return left.relationship.localeCompare(right.relationship) || left.key.localeCompare(right.key);
 }

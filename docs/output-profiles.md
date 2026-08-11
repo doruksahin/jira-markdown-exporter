@@ -83,12 +83,20 @@ Liquid templates receive a normalized, credential-free model:
 | --- | --- | --- |
 | `issue` | `key`, `url`, `summary`, `description`, `updated`, `metadata` | `{{ issue.key }}` renders `ATT-123`. |
 | `comments` | sorted `id`, `author`, `created`, `date`, `updatedNote`, `body` entries | `{% for comment in comments %}`. |
+| `linkedIssues` | sorted `relationship`, `key`, `url`, `summary`, `status`, `issueType`, `assignee` entries | `{% for link in linkedIssues %}`. |
 | `attachments` | sorted `id`, `filename`, `mimeType`, `size`, `author`, `created`, `localPath` entries | `localPath` is empty unless binary downloading succeeds. |
 | `sync` | `attachmentCount`, `downloadedAttachments`, `warnings` | `{% for warning in sync.warnings %}`. |
 
 Attachment `contentUrl` is intentionally absent. A template cannot request a
 new download or observe Jira credentials. Existing media links have already
 been rewritten safely before `issue.description` reaches the template.
+
+`linkedIssues` contains direct Jira issue-to-issue links only. `relationship`
+is Jira's configured label from the exported issue's perspective, so it may be
+`blocks`, `is blocked by`, `relates to`, or a site-specific link type. The
+exporter does not recursively fetch descriptions, comments, or attachments for
+those linked issues. Jira remote links are also intentionally outside this
+snapshot field.
 
 The built-in profile demonstrates a shared notice partial, loops,
 conditionals, and the exporter filters `tableCell`, `formatBytes`, and `yaml`.

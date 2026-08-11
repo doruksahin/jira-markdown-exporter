@@ -25,7 +25,7 @@ the same executable examples rather than describing an aspirational design.
 | Partial results | [runner](src/runner/run-export.ts) and [runner regression](test/core/run-export.test.ts) | If `ATT-1` succeeds and `ATT-2` fails, keep `ATT-1` on disk and return a `partial` receipt. |
 | Markdown layout and attachments | [work-os-v1 writer](src/output/work-os-v1-writer.ts) and [writer regression](test/core/work-os-v1-writer.test.ts) | Attachment IDs `20` and `21` named `design.png` become distinct files; ambiguous filename-only links stay untouched. |
 | Output profiles and templates | [profile guide](docs/output-profiles.md), [built-in manifest](profiles/work-os-v1/profile.json), and [profile regression](test/core/output-profile.test.ts) | `work-os-v1` is the default; a local profile can render `ATT-123/Jira Snapshot/Summary.md` without a TypeScript fork. |
-| Jira pagination, media, and origin safety | [Jira adapter regression](test/jira/jira-board-issue-reader.test.ts) | Follow Jira pagination, fetch all comments, and reject an attachment URL such as `https://evil.example/file`. |
+| Jira pagination, links, media, and origin safety | [Jira adapter regression](test/jira/jira-board-issue-reader.test.ts) | Follow Jira pagination, render a direct `blocks` link to `ATT-456`, fetch all comments, and reject an attachment URL such as `https://evil.example/file`. |
 | Release contents | [package manifest](package.json) and [release check](#public-github-versus-npm-publishing) | `pnpm release:check` builds, tests, and previews precisely the files named in `package.json#files`. |
 
 For source-level layer rules, read [src/AGENTS.md](src/AGENTS.md). For the
@@ -172,6 +172,18 @@ completed packet. The `ATT-1` success / `ATT-2` failure fixture in
 [test/core/run-export.test.ts](test/core/run-export.test.ts) produces a
 `partial` receipt and leaves `ATT-1/40 Jira/00 Issue.md` readable. Treat both
 examples as public compatibility behavior.
+
+### Linked work items
+
+`00 Issue.md` also includes direct Jira issue links. For example, a Jira
+relationship from `ATT-123` that **blocks** `ATT-456` renders the configured
+relationship label, linked key and URL, summary, status, issue type, and
+assignee. The `ATT-456` data is returned as part of Jira's `issuelinks` issue
+field; the exporter does not recursively export `ATT-456` or make separate
+requests for its comments and attachments. This preserves one snapshot per
+selected issue and respects Jira's own custom link types. The exact regression
+is [the Jira adapter test](test/jira/jira-board-issue-reader.test.ts) and the
+rendered `ATT-123` packet is [the work-os-v1 fixture](test/fixtures/work-os-v1/00%20Issue.md).
 
 ## Public GitHub versus npm publishing
 

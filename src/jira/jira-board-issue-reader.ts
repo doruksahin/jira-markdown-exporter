@@ -1,11 +1,11 @@
-import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
+import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueLinkSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 import type { JiraConfig } from '../config/jira-config.js';
 import { adfToMarkdown } from './adf-to-markdown.js';
 import { assertAllowedAttachmentUrl } from './attachment-url-policy.js';
 
 const PAGE_SIZE = 100;
-const ISSUE_FIELDS = ['summary', 'description', 'status', 'issuetype', 'priority', 'assignee', 'reporter', 'created', 'updated', 'labels', 'parent', 'attachment'];
+const ISSUE_FIELDS = ['summary', 'description', 'status', 'issuetype', 'priority', 'assignee', 'reporter', 'created', 'updated', 'labels', 'parent', 'issuelinks', 'attachment'];
 
 export class JiraBoardIssueReader implements BoardIssueReader {
   private readonly authorization: string;
@@ -90,6 +90,7 @@ export function convertBoardIssue(issue: JiraIssue, rawComments: readonly JiraCo
     summary: fields.summary ?? '', description, status: fields.status?.name ?? '', issueType: fields.issuetype?.name ?? '', priority: fields.priority?.name ?? '',
     assignee: fields.assignee?.displayName ?? 'Unassigned', reporter: fields.reporter?.displayName ?? 'Unknown', created: fields.created ?? '', updated: fields.updated ?? '',
     labels: fields.labels ?? [], parentKey: fields.parent?.key ?? '',
+    linkedIssues: (fields.issuelinks ?? []).flatMap((link) => toIssueLink(link, jiraHost)),
     comments: rawComments.map(toComment).sort((a, b) => a.created.localeCompare(b.created) || a.id.localeCompare(b.id)),
     attachments: attachments.map((attachment) => ({ ...attachment, inlineInDescription: attachmentNames.has(attachment.filename) && description.includes(`attachments/${attachment.filename}`) })),
   };
@@ -97,11 +98,24 @@ export function convertBoardIssue(issue: JiraIssue, rawComments: readonly JiraCo
 
 function toComment(comment: JiraComment): BoardCommentSnapshot { return { id: comment.id ?? '', author: comment.author?.displayName ?? 'Unknown', created: comment.created ?? '', updated: comment.updated ?? '', body: adfToMarkdown(comment.body) }; }
 function toAttachment(attachment: JiraAttachment): Omit<BoardAttachmentSnapshot, 'inlineInDescription'> { const mimeType = attachment.mimeType ?? 'application/octet-stream'; return { id: attachment.id ?? '', filename: attachment.filename ?? `attachment-${attachment.id ?? 'unknown'}`, mimeType, size: typeof attachment.size === 'number' ? attachment.size : null, author: attachment.author?.displayName ?? 'Unknown', created: attachment.created ?? '', contentUrl: attachment.content ?? '', isImage: mimeType.startsWith('image/') }; }
+function toIssueLink(link: JiraIssueLink, jiraHost: string): readonly BoardIssueLinkSnapshot[] {
+  const direction = link.outwardIssue ? 'outward' : link.inwardIssue ? 'inward' : undefined;
+  const issue = direction === 'outward' ? link.outwardIssue : link.inwardIssue;
+  if (!direction || !issue?.key) return [];
+  const relationship = link.type?.[direction]?.trim() || link.type?.name?.trim() || 'Linked issue';
+  return [{
+    relationship, key: issue.key, url: `${new URL(jiraHost).origin}/browse/${issue.key}`,
+    summary: issue.fields?.summary ?? '', status: issue.fields?.status?.name ?? '',
+    issueType: issue.fields?.issuetype?.name ?? '', assignee: issue.fields?.assignee?.displayName ?? '',
+  }];
+}
 
 interface SearchPage { issues?: Array<{ key?: string }>; nextPageToken?: string; }
 interface CommentPage { comments?: JiraComment[]; total?: number; }
 interface JiraIssue { key: string; fields?: JiraFields; }
-interface JiraFields { summary?: string; description?: unknown; status?: { name?: string }; issuetype?: { name?: string }; priority?: { name?: string }; assignee?: JiraPerson | null; reporter?: JiraPerson | null; created?: string; updated?: string; labels?: string[]; parent?: { key?: string }; attachment?: JiraAttachment[]; }
+interface JiraFields { summary?: string; description?: unknown; status?: { name?: string }; issuetype?: { name?: string }; priority?: { name?: string }; assignee?: JiraPerson | null; reporter?: JiraPerson | null; created?: string; updated?: string; labels?: string[]; parent?: { key?: string }; issuelinks?: JiraIssueLink[]; attachment?: JiraAttachment[]; }
 interface JiraComment { id?: string; author?: JiraPerson; created?: string; updated?: string; body?: unknown; }
 interface JiraAttachment { id?: string; filename?: string; mimeType?: string; size?: number; author?: JiraPerson; created?: string; content?: string; }
 interface JiraPerson { displayName?: string; }
+interface JiraIssueLink { type?: { name?: string; inward?: string; outward?: string }; inwardIssue?: JiraLinkedIssue; outwardIssue?: JiraLinkedIssue; }
+interface JiraLinkedIssue { key?: string; fields?: Pick<JiraFields, 'summary' | 'status' | 'issuetype' | 'assignee'>; }

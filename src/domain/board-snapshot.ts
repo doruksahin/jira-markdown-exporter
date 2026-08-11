@@ -20,6 +20,18 @@ export interface BoardAttachmentSnapshot {
   readonly inlineInDescription: boolean;
 }
 
+/** A directed relationship from this issue to another issue. */
+export interface BoardIssueLinkSnapshot {
+  /** Jira's configured label from this issue's perspective, for example `blocks`. */
+  readonly relationship: string;
+  readonly key: string;
+  readonly url: string;
+  readonly summary: string;
+  readonly status: string;
+  readonly issueType: string;
+  readonly assignee: string;
+}
+
 export interface BoardIssueSnapshot {
   readonly key: string;
   readonly url: string;
@@ -34,6 +46,7 @@ export interface BoardIssueSnapshot {
   readonly updated: string;
   readonly labels: readonly string[];
   readonly parentKey: string;
+  readonly linkedIssues: readonly BoardIssueLinkSnapshot[];
   readonly comments: readonly BoardCommentSnapshot[];
   readonly attachments: readonly BoardAttachmentSnapshot[];
 }

@@ -21,8 +21,10 @@ describe('JiraBoardIssueReader', () => {
   });
 
   it('paginates comments until Jira total is reached', async () => {
+    const urls: string[] = [];
     const reader = new JiraBoardIssueReader(config, (async (input) => {
       const url = String(input);
+      urls.push(url);
       if (url.includes('/comment?')) {
         return Response.json(url.includes('startAt=0')
           ? { comments: [{ id: '1', created: '2026-01-01' }], total: 2 }
@@ -32,6 +34,21 @@ describe('JiraBoardIssueReader', () => {
     }) as typeof fetch);
     const issue = await reader.fetchIssue('ATT-1');
     expect(issue.comments.map((comment) => comment.id)).toEqual(['1', '2']);
+    expect(urls.find((url) => url.includes('/rest/api/3/issue/ATT-1?'))).toContain('issuelinks');
+  });
+
+  it('normalizes inward and outward Jira issue links without fetching linked issues', () => {
+    const issue = convertBoardIssue({ key: 'ATT-1', fields: {
+      issuelinks: [
+        { type: { name: 'Blocks', outward: 'blocks', inward: 'is blocked by' }, outwardIssue: { key: 'ATT-2', fields: { summary: 'Blocked issue', status: { name: 'To Do' }, issuetype: { name: 'Bug' }, assignee: { displayName: 'Ari' } } } },
+        { type: { name: 'Blocks', outward: 'blocks', inward: 'is blocked by' }, inwardIssue: { key: 'ATT-3', fields: { summary: 'Blocking issue', status: { name: 'In Progress' }, issuetype: { name: 'Task' }, assignee: { displayName: 'Bea' } } } },
+      ],
+    } }, [], config.host);
+
+    expect(issue.linkedIssues).toEqual([
+      { relationship: 'blocks', key: 'ATT-2', url: 'https://acme.atlassian.net/browse/ATT-2', summary: 'Blocked issue', status: 'To Do', issueType: 'Bug', assignee: 'Ari' },
+      { relationship: 'is blocked by', key: 'ATT-3', url: 'https://acme.atlassian.net/browse/ATT-3', summary: 'Blocking issue', status: 'In Progress', issueType: 'Task', assignee: 'Bea' },
+    ]);
   });
 
   it('allows the exact Jira and Atlassian media origins, but rejects foreign hosts', () => {

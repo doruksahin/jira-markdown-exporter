@@ -25,3 +25,9 @@ generated_by: jira-markdown-exporter
 ## Description
 
 ![design](<./attachments/20-design.png>)
+
+## Linked work items
+
+| Relationship | Issue | Summary | Status | Type | Assignee |
+|---|---|---|---|---|---|
+| blocks | [ATT-456](<https://example.test/browse/ATT-456>) | A linked fixture | To Do | Bug | Teammate |

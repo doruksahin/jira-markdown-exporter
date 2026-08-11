@@ -46,7 +46,7 @@ class FakeReader implements BoardIssueReader {
   async downloadAttachment(): Promise<Uint8Array> { return new Uint8Array(); }
 }
 function fixture(key: string): BoardIssueSnapshot {
-  return { key, url: `https://example.test/browse/${key}`, summary: key, description: '', status: 'Open', issueType: 'Task', priority: 'Low', assignee: '', reporter: '', created: '', updated: '', labels: [], parentKey: '', comments: [], attachments: [] };
+  return { key, url: `https://example.test/browse/${key}`, summary: key, description: '', status: 'Open', issueType: 'Task', priority: 'Low', assignee: '', reporter: '', created: '', updated: '', labels: [], parentKey: '', linkedIssues: [], comments: [], attachments: [] };
 }
 async function temporaryDirectory(): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), 'jira-markdown-exporter-'));

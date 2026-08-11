@@ -21,6 +21,7 @@ describe('work-os-v1 writer', () => {
     });
     const generatedFiles = ['00 Issue.md', '10 Comments.md', '20 Attachments.md', '90 Sync.md'];
     const initial = await Promise.all(generatedFiles.map((file) => readFile(join(first.issueDir, file), 'utf8')));
+    expect(initial[0]).toContain('_No linked work items._');
     await writeFile(join(first.issueDir, 'obsolete.md'), 'owned and removable\n');
     await writeWorkOsV1Snapshot(fixtureIssue(), {
       outputDir, downloadAttachments: true, downloadAttachment: async () => new Uint8Array([1, 2, 3]),
@@ -71,7 +72,7 @@ function fixtureIssue(): BoardIssueSnapshot {
     key: 'ATT-123', url: 'https://example.test/browse/ATT-123', summary: 'A fixture',
     description: '![design](./attachments/design.png)', status: 'In Progress', issueType: 'Task', priority: 'Medium',
     assignee: 'Doruk', reporter: 'PM', created: '2026-08-01T00:00:00.000Z', updated: '2026-08-02T00:00:00.000Z',
-    labels: ['zeta', 'alpha'], parentKey: '', comments: [], attachments: [{
+    labels: ['zeta', 'alpha'], parentKey: '', linkedIssues: [], comments: [], attachments: [{
       id: '20', filename: 'design.png', mimeType: 'image/png', size: 2048, author: 'Designer',
       created: '2026-08-02T00:00:00.000Z', contentUrl: 'https://example.test/content/20', isImage: true, inlineInDescription: true,
     }],
