@@ -1,8 +1,8 @@
 # PRD-01KZR5W5CNKW62PP98VGPNJTJX Completion Report
 
-**Document**: `/Users/doruk/Desktop/ADCREATIVE/jira-markdown-exporter/decree/prd/exporter/prd-01kzr5w5cnkw62pp98vgpnjtjx-standalone-jira-markdown-exporter.md`
+**Document**: `/Users/doruk/Desktop/PROJECTS/tools/jira-markdown-exporter/decree/prd/exporter/prd-01kzr5w5cnkw62pp98vgpnjtjx-standalone-jira-markdown-exporter.md`
 **Transitioned to `implemented` on**: 2026-08-11
-**Generated**: 2026-08-11T10:37:41Z
+**Generated**: 2026-08-11T11:00:39Z
 **Total documents in chain**: 1
 
 ## Document chain

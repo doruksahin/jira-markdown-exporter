@@ -8,6 +8,28 @@ Jira issues into deterministic Markdown packets.
 
 The implementation boundary, output layout, JSON receipt, tests, and consumer
 migration sequence are defined in [the extraction plan](docs/extraction-plan.md).
+The local-capsule and live-consumer boundary is recorded in
+[PROJECT.md](PROJECT.md).
+
+## Repository map: follow a concrete example
+
+Read the following files in order before changing behavior. They are linked to
+the same executable examples rather than describing an aspirational design.
+
+| Concern | Source of truth | Concrete example to preserve |
+| --- | --- | --- |
+| Consumer and filesystem ownership | [AGENTS.md](AGENTS.md) and [PROJECT.md](PROJECT.md) | Refreshing `ATT-123` replaces only `ATT-123/40 Jira/`, while its human-owned `00 Task.md` survives. |
+| Public commands and exit codes | [src/cli/main.ts](src/cli/main.ts), [CLI tests](test/jira/cli.test.ts), and [receipt schema](schemas/export-receipt.schema.json) | `--issue-keys ATT-1,ATT-2` and `--jql` are mutually exclusive; JSON mode ends with the versioned receipt. |
+| Obsidian compatibility | [src/board-sync/cli.ts](src/board-sync/cli.ts) | Work OS calls this thin wrapper with `tsx`; it delegates to the same CLI rather than implementing a second exporter. |
+| Fetching boundary | [snapshot DTO](src/domain/board-snapshot.ts), [reader port](src/ports/board-issue-reader.ts), and [Jira adapter](src/jira/jira-board-issue-reader.ts) | A provider returns `BoardIssueSnapshot`; the writer never imports Jira response types. |
+| Partial results | [runner](src/runner/run-export.ts) and [runner regression](test/core/run-export.test.ts) | If `ATT-1` succeeds and `ATT-2` fails, keep `ATT-1` on disk and return a `partial` receipt. |
+| Markdown layout and attachments | [work-os-v1 writer](src/output/work-os-v1-writer.ts) and [writer regression](test/core/work-os-v1-writer.test.ts) | Attachment IDs `20` and `21` named `design.png` become distinct files; ambiguous filename-only links stay untouched. |
+| Jira pagination, media, and origin safety | [Jira adapter regression](test/jira/jira-board-issue-reader.test.ts) | Follow Jira pagination, fetch all comments, and reject an attachment URL such as `https://evil.example/file`. |
+| Release contents | [package manifest](package.json) and [release check](#public-github-versus-npm-publishing) | `pnpm release:check` builds, tests, and previews precisely the files named in `package.json#files`. |
+
+For source-level layer rules, read [src/AGENTS.md](src/AGENTS.md). For the
+test style and the temporary-directory fixtures behind the examples above,
+read [test/AGENTS.md](test/AGENTS.md).
 
 ## Before you install or run it
 
@@ -39,7 +61,7 @@ preferred pattern is to inject the variables from your secret manager or shell
 session. The live Obsidian Work OS integration passes its token from Obsidian
 SecretStorage; it does not write it to the vault.
 
-## Start in one of three ways
+## Choose an execution path
 
 ### 1. Run from a source checkout — best for development
 
@@ -116,6 +138,25 @@ and `1` means the export failed.
 The compatibility entrypoint `src/board-sync/cli.ts` is retained for callers
 that previously invoked the embedded Work OS exporter with `tsx`.
 
+### Observable behavior
+
+The CLI always reads Jira and never mutates it. For `ATT-123`, the writer is
+allowed to refresh only the generated directory below; this is asserted with a
+real sibling file in
+[test/core/work-os-v1-writer.test.ts](test/core/work-os-v1-writer.test.ts):
+
+```text
+<output-dir>/ATT-123/
+├── 00 Task.md       # human-owned; preserved
+└── 40 Jira/         # exporter-owned; replaced as one snapshot
+```
+
+When multiple issue keys are requested, one failed issue does not erase a
+completed packet. The `ATT-1` success / `ATT-2` failure fixture in
+[test/core/run-export.test.ts](test/core/run-export.test.ts) produces a
+`partial` receipt and leaves `ATT-1/40 Jira/00 Issue.md` readable. Treat both
+examples as public compatibility behavior.
+
 ## Public GitHub versus npm publishing
 
 This repository can be public on GitHub without being published to npm.
@@ -132,6 +173,12 @@ npm registry, authenticate to npm, remove the publish block, run
 `pnpm release:check`, tag `v0.1.0`, and publish from that clean commit. The
 explicit `publishConfig.registry` prevents an accidental publish to GitHub
 Packages when a developer's local npm registry is configured there.
+
+The exact release gates live in [package.json](package.json): `prepack` builds
+the ignored `dist/` artifact and `release:check` runs the typecheck, the
+regression suite, and `npm pack --dry-run`. The npm archive intentionally does
+not include the source checkout, tests, vault data, `.env`, or downloaded
+attachments.
 
 ## Initial contract
 

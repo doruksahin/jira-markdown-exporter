@@ -1,15 +1,15 @@
 # SPEC-01KZR6678KTM854EJTMBJZ2GQJ Completion Report
 
-**Document**: `/Users/doruk/Desktop/ADCREATIVE/jira-markdown-exporter/decree/spec/exporter/spec-01kzr6678ktm854ejtmbjz2gqj-implement-standalone-jira-markdown-exporter-v1.md`
+**Document**: `/Users/doruk/Desktop/PROJECTS/tools/jira-markdown-exporter/decree/spec/exporter/spec-01kzr6678ktm854ejtmbjz2gqj-implement-standalone-jira-markdown-exporter-v1.md`
 **Transitioned to `implemented` on**: 2026-08-11
-**Generated**: 2026-08-11T10:37:41Z
+**Generated**: 2026-08-11T11:00:39Z
 **Total documents in chain**: 2
 
 ## Document chain
 
 | Type | ID | Status | Title |
 |---|---|---|---|
-| PRD | PRD-01KZR5W5CNKW62PP98VGPNJTJX | draft | Standalone Jira Markdown Exporter |
+| PRD | PRD-01KZR5W5CNKW62PP98VGPNJTJX | implemented | Standalone Jira Markdown Exporter |
 | SPEC | SPEC-01KZR6678KTM854EJTMBJZ2GQJ | implemented | Implement standalone Jira Markdown Exporter v1 |
 
 ## Acceptance Criteria — primary (6/6)
