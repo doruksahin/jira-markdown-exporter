@@ -28,6 +28,9 @@ In JSON mode, the final stdout line conforms to
 Exit status `0` means every issue synced, `2` means a partial per-issue result,
 and `1` means the export failed.
 
+The compatibility entrypoint `src/board-sync/cli.ts` is retained for callers
+that previously invoked the embedded Work OS exporter with `tsx`.
+
 ## Initial contract
 
 The first release preserves the `work-os-v1` profile:
