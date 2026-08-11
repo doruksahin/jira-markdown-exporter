@@ -1,2 +1,5 @@
 # decree's derived query cache — rebuild with `decree index rebuild`
 .decree/
+node_modules/
+dist/
+.env

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/doruk/jira-markdown-exporter/schemas/export-receipt.schema.json",
+  "title": "Jira Markdown Export Receipt",
+  "type": "object",
+  "required": ["schemaVersion", "status", "total", "synced", "failed", "outputDir", "issues"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["success", "partial", "failed"] },
+    "total": { "type": "integer", "minimum": 0 },
+    "synced": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "outputDir": { "type": "string" },
+    "issues": { "type": "array", "items": { "type": "object", "required": ["key", "status"], "properties": { "key": { "type": "string" }, "status": { "enum": ["synced", "failed"] }, "issueDir": { "type": "string" }, "comments": { "type": "integer", "minimum": 0 }, "attachments": { "type": "integer", "minimum": 0 }, "downloadedAttachments": { "type": "integer", "minimum": 0 }, "warnings": { "type": "array", "items": { "type": "string" } }, "error": { "type": "string" } }, "additionalProperties": false } },
+    "error": { "type": "string" }
+  },
+  "additionalProperties": false
+}

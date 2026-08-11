@@ -5,5 +5,6 @@
 | SPEC | Title | Status | Date |
 |-----|-----|-----|-----|
 | SPEC-01JEXAMP1E0000000000000SPC | Task Storage API | approved | 2026-01-20 |
+| SPEC-01KZR6678KTM854EJTMBJZ2GQJ | Implement standalone Jira Markdown Exporter v1 | implemented | 2026-08-11 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

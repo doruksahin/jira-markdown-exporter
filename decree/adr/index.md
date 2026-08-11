@@ -5,5 +5,6 @@
 | ADR | Title | Status | Date |
 |-----|-----|-----|-----|
 | ADR-01JEXAMP1E00000000000000AD | SQLite for Local Storage | accepted | 2026-01-18 |
+| ADR-01KZR66763MX33YRFBW9EXWJAQ | Preserve Work OS v1 as the initial output profile | accepted | 2026-08-11 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

@@ -10,6 +10,24 @@ Markdown packets.
 The implementation boundary, output layout, JSON receipt, tests, and consumer
 migration sequence are defined in [the extraction plan](docs/extraction-plan.md).
 
+## Usage
+
+```bash
+JIRA_HOST=https://example.atlassian.net \
+JIRA_EMAIL=you@example.com \
+JIRA_API_TOKEN=... \
+pnpm jira-markdown-export --issue-keys ATT-1,ATT-2 --output-dir /path/to/packets --json
+```
+
+Use `--jql '<query>'` instead of `--issue-keys` to select issues with Jira
+Query Language. Add `--download-attachments` to write binaries below the owned
+`attachments/` directory. The CLI is read-only against Jira.
+
+In JSON mode, the final stdout line conforms to
+[schemas/export-receipt.schema.json](schemas/export-receipt.schema.json).
+Exit status `0` means every issue synced, `2` means a partial per-issue result,
+and `1` means the export failed.
+
 ## Initial contract
 
 The first release preserves the `work-os-v1` profile:

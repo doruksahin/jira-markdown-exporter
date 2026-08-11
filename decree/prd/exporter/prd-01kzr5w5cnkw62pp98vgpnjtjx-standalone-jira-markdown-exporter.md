@@ -1,7 +1,7 @@
 ---
+date: '2026-08-11'
 id: PRD-01KZR5W5CNKW62PP98VGPNJTJX
-status: draft
-date: 2026-08-11
+status: implemented
 ---
 
 # PRD-01KZR5W5CNKW62PP98VGPNJTJX Standalone Jira Markdown Exporter
