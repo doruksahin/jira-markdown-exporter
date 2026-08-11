@@ -19,7 +19,9 @@ versioned npm archive.
 - `jira/` is the Jira-specific adapter. Example:
   [`jira/jira-board-issue-reader.ts`](jira/jira-board-issue-reader.ts) requests
   explicit `ISSUE_FIELDS`, follows enhanced-search page tokens, and fetches all
-  comments. Keep REST parsing and ADF conversion here.
+  comments. Keep REST parsing and ADF conversion here. The narrowly scoped
+  [`jira/attachment-url-policy.ts`](jira/attachment-url-policy.ts) separately
+  owns the exact Jira/Atlassian origins permitted for attachment downloads.
 - `runner/` combines the port and output profile. Example:
   [`runner/run-export.ts`](runner/run-export.ts) isolates a failure for
   `ATT-2` instead of discarding a completed `ATT-1` export.

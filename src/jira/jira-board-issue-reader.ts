@@ -2,6 +2,7 @@ import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueSnapshot 
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 import type { JiraConfig } from '../config/jira-config.js';
 import { adfToMarkdown } from './adf-to-markdown.js';
+import { assertAllowedAttachmentUrl } from './attachment-url-policy.js';
 
 const PAGE_SIZE = 100;
 const ISSUE_FIELDS = ['summary', 'description', 'status', 'issuetype', 'priority', 'assignee', 'reporter', 'created', 'updated', 'labels', 'parent', 'attachment'];
@@ -42,13 +43,13 @@ export class JiraBoardIssueReader implements BoardIssueReader {
   }
 
   async downloadAttachment(contentUrl: string): Promise<Uint8Array> {
-    let url = assertJiraOrigin(contentUrl, this.config.host);
+    let url = assertAllowedAttachmentUrl(contentUrl, this.config.host);
     for (let redirects = 0; redirects < 5; redirects += 1) {
       const response = await this.request(url, { method: 'GET', headers: { Authorization: this.authorization }, redirect: 'manual' });
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
         if (!location) throw new Error('Attachment redirect had no location');
-        url = assertJiraOrigin(new URL(location, url).toString(), this.config.host);
+        url = assertAllowedAttachmentUrl(new URL(location, url).toString(), this.config.host);
         continue;
       }
       if (!response.ok) throw new Error(`Attachment HTTP ${response.status}`);
@@ -76,12 +77,6 @@ export class JiraBoardIssueReader implements BoardIssueReader {
     if (!response.ok) throw new Error(`Jira HTTP ${response.status} for ${path.split('?')[0]}`);
     return response.json() as Promise<T>;
   }
-}
-
-export function assertJiraOrigin(contentUrl: string, jiraHost: string): string {
-  const source = new URL(contentUrl);
-  if (source.origin !== new URL(jiraHost).origin) throw new Error(`Attachment host is outside configured Jira origin: ${source.origin}`);
-  return source.toString();
 }
 
 export function convertBoardIssue(issue: JiraIssue, rawComments: readonly JiraComment[], jiraHost: string): BoardIssueSnapshot {

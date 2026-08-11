@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { assertJiraOrigin, convertBoardIssue, JiraBoardIssueReader } from '../../src/jira/jira-board-issue-reader.js';
+import { assertAllowedAttachmentUrl } from '../../src/jira/attachment-url-policy.js';
+import { convertBoardIssue, JiraBoardIssueReader } from '../../src/jira/jira-board-issue-reader.js';
 
 const config = { host: 'https://acme.atlassian.net', email: 'person@example.test', apiToken: 'token' };
 
@@ -33,9 +34,25 @@ describe('JiraBoardIssueReader', () => {
     expect(issue.comments.map((comment) => comment.id)).toEqual(['1', '2']);
   });
 
-  it('rejects foreign attachment origins before requesting them', () => {
-    expect(() => assertJiraOrigin('https://evil.example/file', config.host)).toThrow('outside configured Jira origin');
-    expect(assertJiraOrigin('https://acme.atlassian.net/secure/attachment/1/file.png', config.host)).toContain('/secure/attachment');
+  it('allows the exact Jira and Atlassian media origins, but rejects foreign hosts', () => {
+    expect(assertAllowedAttachmentUrl('https://acme.atlassian.net/secure/attachment/1/file.png', config.host)).toContain('/secure/attachment');
+    expect(assertAllowedAttachmentUrl('https://api.media.atlassian.com/file/1/binary', config.host)).toContain('/file/1/binary');
+    expect(() => assertAllowedAttachmentUrl('https://evil.example/file', config.host)).toThrow('outside the trusted Jira/Atlassian origins');
+    expect(() => assertAllowedAttachmentUrl('https://api.media.atlassian.com.evil.example/file', config.host)).toThrow('outside the trusted Jira/Atlassian origins');
+  });
+
+  it('follows a Jira attachment redirect to the trusted Atlassian media API', async () => {
+    const urls: string[] = [];
+    const reader = new JiraBoardIssueReader(config, (async (input) => {
+      urls.push(String(input));
+      if (urls.length === 1) return new Response(null, { status: 302, headers: { location: 'https://api.media.atlassian.com/file/1/binary' } });
+      return new Response(new Uint8Array([1, 2, 3]));
+    }) as typeof fetch);
+    await expect(reader.downloadAttachment('https://acme.atlassian.net/secure/attachment/1/file.png')).resolves.toEqual(new Uint8Array([1, 2, 3]));
+    expect(urls).toEqual([
+      'https://acme.atlassian.net/secure/attachment/1/file.png',
+      'https://api.media.atlassian.com/file/1/binary',
+    ]);
   });
 
   it('renders an attached ADF media node as a local Markdown image', () => {

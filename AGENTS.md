@@ -86,9 +86,11 @@ that behavior with all-or-nothing export semantics.
 2. Never log, serialize, commit, or add examples containing `JIRA_API_TOKEN`.
    Credentials come from runtime environment variables as shown in
    [`README.md`](README.md). Keep `.env` local and ignored.
-3. Preserve attachment-origin validation. The adapter's
-   `assertJiraOrigin` prevents a Jira attachment URL from redirecting to a
-   foreign host. The concrete rejection example is
+3. Preserve attachment-origin validation. The adapter uses
+   [`jira/attachment-url-policy.ts`](src/jira/attachment-url-policy.ts) to
+   allow only the configured Jira origin and the exact official
+   `https://api.media.atlassian.com` origin; it must reject all other hosts.
+   The concrete rejection example is
    `https://evil.example/file` in
    [`test/jira/jira-board-issue-reader.test.ts`](test/jira/jira-board-issue-reader.test.ts).
 4. Preserve the filename-collision rule. `design.png` attachment IDs `20` and
