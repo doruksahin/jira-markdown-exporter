@@ -17,9 +17,11 @@ Use the closest existing example instead of creating a new test style:
 - CLI behavior: call exported `parseArguments` or `main` as in
   [`jira/cli.test.ts`](jira/cli.test.ts). Do not spawn a shell just to test a
   flag parser.
-- Jira adapter behavior: inject a mocked `fetch` into `JiraBoardIssueReader`,
-  as in [`jira/jira-board-issue-reader.test.ts`](jira/jira-board-issue-reader.test.ts).
-  The test must not call a real Jira instance or require credentials.
+- Jira adapter behavior: fake the narrow `JiraReadClient` passed to
+  `JiraBoardIssueReader`, as in
+  [`jira/jira-board-issue-reader.test.ts`](jira/jira-board-issue-reader.test.ts).
+  Pass a mocked native `fetch` only for attachment-download behavior. The test
+  must not call a real Jira instance or require credentials.
 - Output-profile behavior: start with
   [`core/output-profile.test.ts`](core/output-profile.test.ts). Its `compact-v1`
   fixture proves a checked-out local profile writes `ATT-123/Jira Snapshot/Summary.md`,

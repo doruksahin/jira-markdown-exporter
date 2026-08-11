@@ -1,40 +1,52 @@
 import { describe, expect, it } from 'vitest';
 import { assertAllowedAttachmentUrl } from '../../src/jira/attachment-url-policy.js';
 import { convertBoardIssue, JiraBoardIssueReader } from '../../src/jira/jira-board-issue-reader.js';
+import type { JiraReadClient } from '../../src/jira/jira-read-client.js';
 
 const config = { host: 'https://acme.atlassian.net', email: 'person@example.test', apiToken: 'token' };
 
 describe('JiraBoardIssueReader', () => {
   it('follows enhanced-search page tokens and de-duplicates keys', async () => {
-    const urls: string[] = [];
+    const requests: Array<{ nextPageToken?: string }> = [];
     const responses = [
       { issues: [{ key: 'ATT-1' }, { key: 'ATT-2' }], nextPageToken: 'next' },
       { issues: [{ key: 'ATT-2' }, { key: 'ATT-3' }] },
     ];
-    const reader = new JiraBoardIssueReader(config, (async (input) => {
-      urls.push(String(input));
-      return Response.json(responses.shift());
-    }) as typeof fetch);
+    const reader = new JiraBoardIssueReader(config, fakeClient({
+      searchIssues: async (request) => {
+        requests.push(request);
+        return responses.shift() ?? {};
+      },
+    }));
     await expect(reader.searchIssueKeys('project = ATT')).resolves.toEqual(['ATT-1', 'ATT-2', 'ATT-3']);
-    expect(urls).toHaveLength(2);
-    expect(urls[1]).toContain('nextPageToken=next');
+    expect(requests).toEqual([
+      { jql: 'project = ATT', maxResults: 100, fields: ['key'], nextPageToken: undefined },
+      { jql: 'project = ATT', maxResults: 100, fields: ['key'], nextPageToken: 'next' },
+    ]);
   });
 
   it('paginates comments until Jira total is reached', async () => {
-    const urls: string[] = [];
-    const reader = new JiraBoardIssueReader(config, (async (input) => {
-      const url = String(input);
-      urls.push(url);
-      if (url.includes('/comment?')) {
-        return Response.json(url.includes('startAt=0')
-          ? { comments: [{ id: '1', created: '2026-01-01' }], total: 2 }
-          : { comments: [{ id: '2', created: '2026-01-02' }], total: 2 });
-      }
-      return Response.json({ key: 'ATT-1', fields: { summary: 'One' } });
-    }) as typeof fetch);
+    const requests: Array<{ startAt?: number }> = [];
+    const issueRequests: Array<{ fields?: string[] }> = [];
+    const reader = new JiraBoardIssueReader(config, fakeClient({
+      getIssue: async (request) => {
+        issueRequests.push(request);
+        return asJiraIssue({ key: 'ATT-1', fields: { summary: 'One' } });
+      },
+      getComments: async (request) => {
+        requests.push(request);
+        return request.startAt === 0
+          ? asJiraComments({ comments: [{ id: '1', created: '2026-01-01' }], total: 2 })
+          : asJiraComments({ comments: [{ id: '2', created: '2026-01-02' }], total: 2 });
+      },
+    }));
     const issue = await reader.fetchIssue('ATT-1');
     expect(issue.comments.map((comment) => comment.id)).toEqual(['1', '2']);
-    expect(urls.find((url) => url.includes('/rest/api/3/issue/ATT-1?'))).toContain('issuelinks');
+    expect(requests).toEqual([
+      { issueIdOrKey: 'ATT-1', startAt: 0, maxResults: 100, orderBy: 'created' },
+      { issueIdOrKey: 'ATT-1', startAt: 1, maxResults: 100, orderBy: 'created' },
+    ]);
+    expect(issueRequests).toEqual([{ issueIdOrKey: 'ATT-1', fields: expect.arrayContaining(['summary', 'issuelinks', 'attachment']) }]);
   });
 
   it('normalizes inward and outward Jira issue links without fetching linked issues', () => {
@@ -60,7 +72,7 @@ describe('JiraBoardIssueReader', () => {
 
   it('follows a Jira attachment redirect to the trusted Atlassian media API', async () => {
     const urls: string[] = [];
-    const reader = new JiraBoardIssueReader(config, (async (input) => {
+    const reader = new JiraBoardIssueReader(config, fakeClient(), (async (input) => {
       urls.push(String(input));
       if (urls.length === 1) return new Response(null, { status: 302, headers: { location: 'https://api.media.atlassian.com/file/1/binary' } });
       return new Response(new Uint8Array([1, 2, 3]));
@@ -81,3 +93,20 @@ describe('JiraBoardIssueReader', () => {
     expect(issue.attachments[0]?.inlineInDescription).toBe(true);
   });
 });
+
+function fakeClient(overrides: Partial<JiraReadClient> = {}): JiraReadClient {
+  return {
+    searchIssues: async () => { throw new Error('Unexpected Jira search'); },
+    getIssue: async () => { throw new Error('Unexpected Jira issue read'); },
+    getComments: async () => { throw new Error('Unexpected Jira comment read'); },
+    ...overrides,
+  };
+}
+
+function asJiraIssue(value: unknown) {
+  return value as import('jira.js/version3').Version3Models.Issue;
+}
+
+function asJiraComments(value: unknown) {
+  return value as import('jira.js/version3').Version3Models.PageOfComments;
+}

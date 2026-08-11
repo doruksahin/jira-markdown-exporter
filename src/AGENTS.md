@@ -17,11 +17,15 @@ versioned npm archive.
   [`ports/board-issue-reader.ts`](ports/board-issue-reader.ts) has only
   `searchIssueKeys`, `fetchIssue`, and `downloadAttachment`.
 - `jira/` is the Jira-specific adapter. Example:
+  [`jira/jira-read-client.ts`](jira/jira-read-client.ts) is the narrow,
+  read-only `jira.js` facade for typed issue, comment, and enhanced-JQL calls.
   [`jira/jira-board-issue-reader.ts`](jira/jira-board-issue-reader.ts) requests
-  explicit `ISSUE_FIELDS`, follows enhanced-search page tokens, and fetches all
-  comments. Keep REST parsing and ADF conversion here. The narrowly scoped
+  explicit `ISSUE_FIELDS`, follows enhanced-search page tokens, maps SDK models
+  into the portable snapshot, and fetches all comments. Keep SDK mapping and
+  ADF conversion here. The narrowly scoped
   [`jira/attachment-url-policy.ts`](jira/attachment-url-policy.ts) separately
-  owns the exact Jira/Atlassian origins permitted for attachment downloads.
+  owns the exact Jira/Atlassian origins permitted for attachment downloads;
+  binary attachment requests deliberately use native `fetch`, not the SDK.
 - `runner/` combines the port and output profile. Example:
   [`runner/run-export.ts`](runner/run-export.ts) isolates a failure for
   `ATT-2` instead of discarding a completed `ATT-1` export.
@@ -63,6 +67,10 @@ to the string in `jira/adf-to-markdown.ts`, store that string in
   test.
 - Pagination: a repeated Jira enhanced-search token throws rather than looping.
   See the first adapter test before changing token handling.
+- SDK boundary: add a new Jira JSON read to `JiraReadClient` and
+  `JiraSdkReadClient`, then fake that narrow interface in the adapter test.
+  Do not expose `Version3Client` outside `jira/`, and do not move attachment
+  bytes into its Axios transport.
 - Output profiles: keep `contentUrl` out of `template-model.ts`; it is a
   download-layer value. Validate new manifest fields in `output-profile.ts`,
   document them in `docs/output-profiles.md`, and add a profile regression.

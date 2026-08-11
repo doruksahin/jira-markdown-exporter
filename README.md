@@ -173,6 +173,16 @@ completed packet. The `ATT-1` success / `ATT-2` failure fixture in
 `partial` receipt and leaves `ATT-1/40 Jira/00 Issue.md` readable. Treat both
 examples as public compatibility behavior.
 
+### Jira SDK boundary
+
+The exporter uses the typed `jira.js` Cloud v3 client only for issue JSON,
+comment pages, and enhanced JQL pages. Its intentionally narrow
+[`JiraReadClient`](src/jira/jira-read-client.ts) exposes only those read
+operations, so exporter code cannot reach Jira mutation APIs by accident.
+Attachment binaries remain on native `fetch`: their manual redirect handling
+and exact Jira/Atlassian Media origin allowlist are a separate security
+boundary. The adapter regression fakes these two transports independently.
+
 ### Linked work items
 
 `00 Issue.md` also includes direct Jira issue links. For example, a Jira
