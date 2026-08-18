@@ -20,7 +20,7 @@ the same executable examples rather than describing an aspirational design.
 | --- | --- | --- |
 | Consumer and filesystem ownership | [AGENTS.md](AGENTS.md) and [PROJECT.md](PROJECT.md) | Refreshing `ATT-123` replaces only `ATT-123/40 Jira/`, while its human-owned `00 Task.md` survives. |
 | Public commands and exit codes | [src/cli/main.ts](src/cli/main.ts), [CLI tests](test/jira/cli.test.ts), and [receipt schema](schemas/export-receipt.schema.json) | `--issue-keys ATT-1,ATT-2` and `--jql` are mutually exclusive; JSON mode ends with the versioned receipt. |
-| Obsidian compatibility | [src/board-sync/cli.ts](src/board-sync/cli.ts) | Work OS calls this thin wrapper with `tsx`; it delegates to the same CLI rather than implementing a second exporter. |
+| Library and Obsidian compatibility | [src/index.ts](src/index.ts), [library test](test/core/library.test.ts), and [src/board-sync/cli.ts](src/board-sync/cli.ts) | Work OS bundles the typed library and canonical profile; the compatibility CLI delegates to the same implementation. |
 | Fetching boundary | [snapshot DTO](src/domain/board-snapshot.ts), [reader port](src/ports/board-issue-reader.ts), and [Jira adapter](src/jira/jira-board-issue-reader.ts) | A provider returns `BoardIssueSnapshot`; the writer never imports Jira response types. |
 | Partial results | [runner](src/runner/run-export.ts) and [runner regression](test/core/run-export.test.ts) | If `ATT-1` succeeds and `ATT-2` fails, keep `ATT-1` on disk and return a `partial` receipt. |
 | Markdown layout and attachments | [work-os-v1 writer](src/output/work-os-v1-writer.ts) and [writer regression](test/core/work-os-v1-writer.test.ts) | Attachment IDs `20` and `21` named `design.png` become distinct files; ambiguous filename-only links stay untouched. |
@@ -108,16 +108,13 @@ download development dependencies and are not a stable release channel.
 
 ### 3. Use it from Obsidian Work OS
 
-Set **Jira Markdown exporter** to the local checkout path, for example:
+The internal Work OS release pins and bundles this package and the canonical
+`work-os-v1` profile. A teammate does not clone this repository, install Node,
+or configure an exporter path. Work OS passes credentials in memory from its
+tracked team profile, local email, and Obsidian SecretStorage selection.
 
-```text
-/Users/you/Code/jira-markdown-exporter
-```
-
-Work OS calls the compatibility entrypoint
-[`src/board-sync/cli.ts`](src/board-sync/cli.ts) with `tsx`. That wrapper is
-kept specifically so the existing **Jira → Obsidian sync** button continues to
-work.
+The compatibility entrypoint [`src/board-sync/cli.ts`](src/board-sync/cli.ts)
+remains for standalone CLI consumers; it is not the Work OS runtime boundary.
 
 ## Usage
 
@@ -208,7 +205,7 @@ The package is intentionally blocked from publishing today by `"private":
 true` and `"license": "UNLICENSED"`. Before the first release, choose a
 license, verify that `jira-markdown-exporter` is still available on the public
 npm registry, authenticate to npm, remove the publish block, run
-`pnpm release:check`, tag `v0.1.0`, and publish from that clean commit. The
+`pnpm release:check`, tag the exact `package.json` version, and publish from that clean commit. The
 explicit `publishConfig.registry` prevents an accidental publish to GitHub
 Packages when a developer's local npm registry is configured there.
 

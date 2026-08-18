@@ -16,7 +16,8 @@ export interface OutputProfileFile {
 }
 
 export interface OutputProfile {
-  readonly directory: string;
+  readonly directory?: string;
+  readonly templates?: Readonly<Record<string, string>>;
   readonly manifest: OutputProfileManifest;
 }
 
@@ -25,17 +26,18 @@ export interface OutputProfileSelection {
   readonly templateDir?: string;
 }
 
-const BUILTIN_PROFILES: Readonly<Record<string, string>> = {
-  'work-os-v1': fileURLToPath(new URL('../../profiles/work-os-v1/', import.meta.url)),
-};
-
 /** Loads a built-in profile or an explicitly selected local profile directory. */
 export async function loadOutputProfile(selection: OutputProfileSelection = {}): Promise<OutputProfile> {
   if (selection.profile && selection.templateDir) throw new Error('Use either --profile or --template-dir, not both');
   const name = selection.profile ?? 'work-os-v1';
-  const directory = selection.templateDir ? resolve(selection.templateDir) : BUILTIN_PROFILES[name];
+  const directory = selection.templateDir ? resolve(selection.templateDir) : builtinProfileDirectory(name);
   if (!directory) throw new Error(`Unknown built-in output profile: ${name}`);
   return { directory, manifest: parseManifest(await readManifest(directory), directory) };
+}
+
+function builtinProfileDirectory(name: string): string | undefined {
+  if (name !== 'work-os-v1') return undefined;
+  return fileURLToPath(new URL('../../profiles/work-os-v1/', import.meta.url));
 }
 
 async function readManifest(directory: string): Promise<unknown> {

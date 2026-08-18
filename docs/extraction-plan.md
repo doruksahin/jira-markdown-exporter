@@ -1,6 +1,6 @@
 # Extraction plan: Jira Markdown Exporter
 
-Status: planned
+Status: implemented
 Governing PRD: `PRD-01KZR5W5CNKW62PP98VGPNJTJX`
 
 ## Goal
@@ -54,7 +54,8 @@ Move or re-author only these concepts:
 | `ports` | `BoardIssueReader`: search, fetch, and attachment download |
 | `jira` | read-only Jira v3 client, JQL/comment pagination, ADF rendering |
 | `output` | deterministic `work-os-v1` Markdown writer and attachment storage |
-| `cli` | argument validation, environment config, JSON result and exit code |
+| `library` | explicit in-memory configuration and reusable export entrypoint |
+| `cli` | argument validation, environment adapter, JSON result and exit code |
 
 Do not copy the old pipeline domain, report generation, LLM flow, task tracker,
 or generic Jira converter. The generic converter pulls in unrelated types and
@@ -71,8 +72,8 @@ will reject attachment URLs outside the configured Jira origin.
    origin-checked binary downloads, and environment-only credential loading.
 4. **CLI and documentation** — Publish usage, output, authentication, errors,
    schema, and migration documentation.
-5. **Parity migration** — Run fixture parity and one read-only real-Jira
-   validation. Only then replace the existing Work OS invocation.
+5. **Library migration** — Export the typed config-object API, make the CLI a
+   consumer of it, and let Work OS bundle the API plus canonical profile.
 
 ## Required tests
 

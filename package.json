@@ -1,10 +1,17 @@
 {
   "name": "jira-markdown-exporter",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Read-only Jira issue snapshots as deterministic Markdown packets.",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./profiles/*": "./profiles/*"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/doruksahin/jira-markdown-exporter.git"

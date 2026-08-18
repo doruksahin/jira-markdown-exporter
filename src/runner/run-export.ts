@@ -4,6 +4,7 @@ import type { ExportResult, ExportedIssueResult } from '../domain/export-result.
 import { loadOutputProfile } from '../output/output-profile.js';
 import { writeOutputProfileSnapshot } from '../output/profile-writer.js';
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
+import type { OutputProfile } from '../output/output-profile.js';
 
 export interface RunExportOptions {
   readonly outputDir: string;
@@ -14,11 +15,16 @@ export interface RunExportOptions {
   readonly profile?: string;
   /** Explicit local profile directory containing `profile.json` and templates. */
   readonly templateDir?: string;
+  /** Prevalidated in-memory profile used by embedded library consumers. */
+  readonly outputProfile?: OutputProfile;
 }
 
 /** Fetches and writes each issue independently; one failed issue never rolls back another. */
 export async function runExport(reader: BoardIssueReader, options: RunExportOptions): Promise<ExportResult> {
-  const profile = await loadOutputProfile({ profile: options.profile, templateDir: options.templateDir });
+  if (options.outputProfile && (options.profile || options.templateDir)) {
+    throw new Error('Use outputProfile or a filesystem profile selection, not both');
+  }
+  const profile = options.outputProfile ?? await loadOutputProfile({ profile: options.profile, templateDir: options.templateDir });
   const keys = await resolveIssueKeys(reader, options);
   const issues: ExportedIssueResult[] = [];
   for (const key of keys) {

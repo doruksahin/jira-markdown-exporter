@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { loadJiraConfig } from '../config/jira-config.js';
 import { errorMessage } from '../domain/errors.js';
 import type { ExportResult } from '../domain/export-result.js';
-import { JiraBoardIssueReader } from '../jira/jira-board-issue-reader.js';
-import { runExport } from '../runner/run-export.js';
+import { exportJiraMarkdown } from '../index.js';
+import { loadOutputProfile } from '../output/output-profile.js';
 
 export interface CliOptions {
   readonly issueKeys?: readonly string[];
@@ -59,8 +59,16 @@ export async function main(argv: readonly string[] = process.argv.slice(2), env:
   }
 
   try {
-    const reader = new JiraBoardIssueReader(loadJiraConfig(env));
-    const result = await runExport(reader, options);
+    const config = loadJiraConfig(env);
+    const outputProfile = await loadOutputProfile({ profile: options.profile, templateDir: options.templateDir });
+    const result = await exportJiraMarkdown({
+      ...config,
+      issueKeys: options.issueKeys,
+      jql: options.jql,
+      outputDir: options.outputDir,
+      downloadAttachments: options.downloadAttachments,
+      outputProfile,
+    });
     writeResult(result, options.json);
     return result.status === 'success' ? 0 : result.status === 'partial' ? 2 : 1;
   } catch (error) {

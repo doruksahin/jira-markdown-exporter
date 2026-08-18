@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Compatibility entrypoint for the existing Work OS launcher.
+ * Compatibility entrypoint for standalone board-sync callers.
  *
- * The launcher invokes `tsx src/board-sync/cli.ts`; retaining this narrow
- * wrapper lets it migrate repositories without changing its command contract.
+ * Work OS bundles the library API; retaining this narrow wrapper preserves the
+ * historical CLI argument and receipt contract for other callers.
  */
 import { main } from "../cli/main.js";
 

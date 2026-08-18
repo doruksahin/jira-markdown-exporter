@@ -11,8 +11,8 @@ writing changes back to Jira.
 - **Repository:** `doruksahin/jira-markdown-exporter` on GitHub.
 - **Local capsule:** `/Users/doruk/Desktop/PROJECTS/tools/jira-markdown-exporter`.
 - **Live consumer:** the Work OS plugin in the AdCreative Obsidian vault. Its
-  `jiraExporterPath` must point at this local capsule because it invokes
-  `src/board-sync/cli.ts` through `tsx`.
+  tracked runtime bundles the exact library entrypoint and canonical profile;
+  teammate setup has no path to this capsule.
 - **Output ownership:** only `<packet parent>/<ISSUE-KEY>/40 Jira/`; see the
   `ATT-123` preservation regression in `test/core/work-os-v1-writer.test.ts`.
 
@@ -29,6 +29,6 @@ npm publishing** section before changing either guard.
 
 ## Local state and secrets
 
-Jira credentials come only from `JIRA_HOST`, `JIRA_EMAIL`, and
-`JIRA_API_TOKEN` at runtime. Never commit or copy those values into this
-repository, GitHub, npm, the vault, or generated packet files.
+The CLI reads `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN`. Library callers
+pass the same values through the typed in-memory request. Never commit or copy
+credentials into this repository, GitHub, npm, the vault, or generated files.

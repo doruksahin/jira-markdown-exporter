@@ -6,19 +6,14 @@ This is the standalone, **read-only** exporter behind the Obsidian Work OS
 Jira → Obsidian sync. It turns Jira issue data into a deterministic Markdown
 snapshot. It does not create, edit, transition, or comment on Jira issues.
 
-The live consumer is the Obsidian Work OS plugin in the AdCreative vault. Its
-runtime constructs this compatibility invocation:
+The live consumer is the Obsidian Work OS plugin in the AdCreative vault. It
+pins and bundles the typed library entrypoint at [`src/index.ts`](src/index.ts)
+and the canonical profile assets. It passes credentials in memory and does not
+launch this repository through Node or `tsx`.
 
-```sh
-node node_modules/tsx/dist/cli.mjs src/board-sync/cli.ts \
-  --issue-keys ATT-5215 \
-  --output-dir "/path/to/Tasks/Sprints/26_08_01 · 16793" \
-  --json
-```
-
-The compatibility entrypoint is therefore part of the public contract:
-[`src/board-sync/cli.ts`](src/board-sync/cli.ts). Do not remove, rename, or
-change its argument behavior without migrating the Work OS caller.
+The compatibility entrypoint at [`src/board-sync/cli.ts`](src/board-sync/cli.ts)
+remains a public CLI surface. Do not remove, rename, or change its argument
+behavior without migrating standalone callers.
 
 The actual CLI implementation is [`src/cli/main.ts`](src/cli/main.ts). Its
 documented command examples are in [`README.md`](README.md), and its JSON

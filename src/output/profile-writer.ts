@@ -60,7 +60,12 @@ export async function writeOutputProfileSnapshot(
 }
 
 async function renderProfile(profile: OutputProfile, model: ReturnType<typeof createExportTemplateModel>): Promise<readonly { output: string; content: string }[]> {
-  const engine = new Liquid({ root: profile.directory, strictVariables: true, strictFilters: true });
+  if (!profile.directory && !profile.templates) throw new Error('Output profile has no template source');
+  const engine = new Liquid({
+    ...(profile.templates ? { templates: { ...profile.templates } } : { root: profile.directory }),
+    strictVariables: true,
+    strictFilters: true,
+  });
   registerFilters(engine);
   return Promise.all(profile.manifest.files.map(async (file) => ({
     output: file.output,
