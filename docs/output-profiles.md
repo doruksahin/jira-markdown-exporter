@@ -85,7 +85,7 @@ Liquid templates receive a normalized, credential-free model:
 | `comments` | sorted `id`, `author`, `created`, `date`, `updatedNote`, `body` entries | `{% for comment in comments %}`. |
 | `linkedIssues` | sorted `relationship`, `key`, `url`, `summary`, `status`, `issueType`, `assignee` entries | `{% for link in linkedIssues %}`. |
 | `attachments` | sorted `id`, `filename`, `mimeType`, `size`, `author`, `created`, `localPath` entries | `localPath` is empty unless binary downloading succeeds. |
-| `sync` | `attachmentCount`, `downloadedAttachments`, `warnings` | `{% for warning in sync.warnings %}`. |
+| `sync` | `attachmentCount`, `downloadedAttachments`, `attachmentDownloadsEnabled`, `warnings` | Use `attachmentDownloadsEnabled` to distinguish intentional metadata-only sync from a requested download failure. |
 
 Attachment `contentUrl` is intentionally absent. A template cannot request a
 new download or observe Jira credentials. Existing media links have already

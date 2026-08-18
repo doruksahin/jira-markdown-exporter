@@ -60,10 +60,18 @@ describe('work-os-v1 writer', () => {
   it('leaves a readable generated packet when a later refresh download fails', async () => {
     const outputDir = await temporaryDirectory();
     const initial = await writeWorkOsV1Snapshot(fixtureIssue(), { outputDir });
+    const metadataOnly = await readFile(join(initial.issueDir, '00 Issue.md'), 'utf8');
+    expect(metadataOnly).toContain('Attachment downloads are disabled for this sync: design.png');
+    expect(metadataOnly).not.toContain('Image could not be downloaded');
+    expect(await readFile(join(initial.issueDir, '20 Attachments.md'), 'utf8'))
+      .toContain('downloads disabled for this sync');
     await expect(writeWorkOsV1Snapshot(fixtureIssue(), {
       outputDir, downloadAttachments: true, downloadAttachment: async () => { throw new Error('network down'); },
     })).resolves.toMatchObject({ downloadedAttachments: 0 });
-    expect(await readFile(join(initial.issueDir, '00 Issue.md'), 'utf8')).toContain('ATT-123');
+    const failedDownload = await readFile(join(initial.issueDir, '00 Issue.md'), 'utf8');
+    expect(failedDownload).toContain('Image could not be downloaded: design.png');
+    expect(failedDownload).not.toContain('downloads are disabled');
+    expect(await readFile(join(initial.issueDir, '20 Attachments.md'), 'utf8')).toContain('download failed');
   });
 });
 

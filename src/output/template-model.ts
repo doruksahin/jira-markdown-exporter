@@ -15,6 +15,7 @@ export interface ExportTemplateModel {
   readonly sync: {
     readonly attachmentCount: number;
     readonly downloadedAttachments: number;
+    readonly attachmentDownloadsEnabled: boolean;
     readonly warnings: readonly string[];
   };
 }
@@ -32,6 +33,7 @@ export function createExportTemplateModel(
   issue: BoardIssueSnapshot,
   localPaths: ReadonlyMap<string, string>,
   downloadedAttachments: number,
+  attachmentDownloadsEnabled: boolean,
   warnings: readonly string[],
 ): ExportTemplateModel {
   return {
@@ -50,7 +52,7 @@ export function createExportTemplateModel(
       size: attachment.size, author: attachment.author, created: attachment.created,
       localPath: localPaths.get(attachment.id) ?? '',
     })),
-    sync: { attachmentCount: issue.attachments.length, downloadedAttachments, warnings },
+    sync: { attachmentCount: issue.attachments.length, downloadedAttachments, attachmentDownloadsEnabled, warnings },
   };
 }
 

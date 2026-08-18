@@ -37,9 +37,20 @@ export async function writeOutputProfileSnapshot(
     const attachments = await writeAttachmentBinaries(issue, stagingDir, options);
     const localizedIssue = {
       ...issue,
-      description: localizeInlineMedia(issue.description, issue.attachments, attachments.localPaths),
+      description: localizeInlineMedia(
+        issue.description,
+        issue.attachments,
+        attachments.localPaths,
+        options.downloadAttachments === true,
+      ),
     };
-    const model = createExportTemplateModel(localizedIssue, attachments.localPaths, attachments.downloaded, attachments.warnings);
+    const model = createExportTemplateModel(
+      localizedIssue,
+      attachments.localPaths,
+      attachments.downloaded,
+      options.downloadAttachments === true,
+      attachments.warnings,
+    );
     const rendered = await renderProfile(options.profile, model);
     await Promise.all(rendered.map(async ({ output, content }) => {
       const target = join(stagingDir, output);
@@ -127,6 +138,7 @@ export function localizeInlineMedia(
   description: string,
   attachments: readonly BoardAttachmentSnapshot[],
   localPaths: ReadonlyMap<string, string>,
+  attachmentDownloadsEnabled: boolean,
 ): string {
   let result = description;
   const filenameCounts = new Map<string, number>();
@@ -136,16 +148,32 @@ export function localizeInlineMedia(
     const idTargets = [`attachment:${attachment.id}`, `attachment://${attachment.id}`, `/secure/attachment/${attachment.id}`, `./attachments/${attachment.id}`];
     const filenameTargets = filenameCounts.get(attachment.filename) === 1
       ? [`./attachments/${attachment.filename}`, `attachments/${attachment.filename}`] : [];
-    for (const target of [...idTargets, ...filenameTargets]) result = replaceMarkdownTarget(result, target, localPath ? `./${localPath}` : undefined, attachment.filename);
+    for (const target of [...idTargets, ...filenameTargets]) result = replaceMarkdownTarget(
+      result,
+      target,
+      localPath ? `./${localPath}` : undefined,
+      attachment.filename,
+      attachmentDownloadsEnabled,
+    );
   }
   return result;
 }
 
-function replaceMarkdownTarget(source: string, target: string, localTarget: string | undefined, filename: string): string {
+function replaceMarkdownTarget(
+  source: string,
+  target: string,
+  localTarget: string | undefined,
+  filename: string,
+  attachmentDownloadsEnabled: boolean,
+): string {
   const escaped = escapeRegExp(target);
   const link = new RegExp(`(!?\\[[^\\]]*\\]\\()<?${escaped}>?(\\))`, 'g');
   return source.replace(link, (_match, prefix: string, suffix: string) => (
-    localTarget ? `${prefix}<${localTarget}>${suffix}` : `> [!warning] Image could not be downloaded: ${filename}`
+    localTarget
+      ? `${prefix}<${localTarget}>${suffix}`
+      : attachmentDownloadsEnabled
+        ? `> [!warning] Image could not be downloaded: ${filename}`
+        : `> [!info] Attachment downloads are disabled for this sync: ${filename}`
   ));
 }
 

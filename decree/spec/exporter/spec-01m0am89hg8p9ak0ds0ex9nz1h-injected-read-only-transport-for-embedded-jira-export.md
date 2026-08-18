@@ -122,3 +122,4 @@ record the resulting tarball name and SHA-256 for the Work OS vendor refresh.
 - [x] README documents the embedded transport contract and attachment limitation without duplicating Jira endpoint or output-profile rules.
 - [x] Embedded export and read-facade configuration require only the Jira host; email and API token remain inside the injected authorization transport.
 - [x] Failed issue receipts preserve an allowlisted structured projection of known transport errors without removing the existing error text or exposing request data.
+- [x] Metadata-only sync labels attachment downloads as intentionally disabled, while requested download failures retain explicit failure wording.

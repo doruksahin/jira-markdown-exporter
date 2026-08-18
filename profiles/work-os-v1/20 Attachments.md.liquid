@@ -10,6 +10,6 @@ attachment_count: {{ attachments.size }}
 {% include 'partials/notice.liquid' %}
 | Name | MIME | Size | Author | Created | Local file |
 |---|---|---:|---|---|---|
-{% if attachments.size > 0 %}{% for attachment in attachments %}| {{ attachment.filename | tableCell }} | {{ attachment.mimeType | tableCell }} | {{ attachment.size | formatBytes }} | {{ attachment.author | tableCell }} | {{ attachment.created | default: '—' }} | {% if attachment.localPath != blank %}[open](<{{ attachment.localPath }}>){% else %}not downloaded{% endif %} |
+{% if attachments.size > 0 %}{% for attachment in attachments %}| {{ attachment.filename | tableCell }} | {{ attachment.mimeType | tableCell }} | {{ attachment.size | formatBytes }} | {{ attachment.author | tableCell }} | {{ attachment.created | default: '—' }} | {% if attachment.localPath != blank %}[open](<{{ attachment.localPath }}>){% elsif sync.attachmentDownloadsEnabled %}download failed{% else %}downloads disabled for this sync{% endif %} |
 {% endfor %}{% else %}| _No attachments_ | — | — | — | — | — |
 {% endif %}
