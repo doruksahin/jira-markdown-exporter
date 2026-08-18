@@ -8,6 +8,22 @@ export function adfToMarkdown(value: unknown, attachmentNames: ReadonlySet<strin
   }
 }
 
+/** Plain-text ADF projection for UI lists and local search indexes. */
+export function adfToPlainText(value: unknown): string {
+  if (!value || typeof value !== 'object') return '';
+  const visit = (node: AdfNode): string => {
+    if (node.type === 'text') return node.text || '';
+    if (node.type === 'mention') return String(node.attrs?.text || '@unknown');
+    if (node.type === 'emoji') return String(node.attrs?.text || node.attrs?.shortName || '');
+    if (node.type === 'hardBreak') return '\n';
+    const children = (node.content || []).map(visit).join('');
+    return ['paragraph', 'heading', 'listItem', 'blockquote', 'codeBlock'].includes(String(node.type))
+      ? `${children}\n`
+      : children;
+  };
+  return visit(value as AdfNode).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 interface AdfNode { type?: string; text?: string; attrs?: Record<string, unknown>; content?: AdfNode[]; marks?: Array<{ type?: string; attrs?: Record<string, unknown> }>; }
 
 function render(node: AdfNode, attachmentNames: ReadonlySet<string>): string {

@@ -68,7 +68,7 @@ export async function main(argv: readonly string[] = process.argv.slice(2), env:
       outputDir: options.outputDir,
       downloadAttachments: options.downloadAttachments,
       outputProfile,
-    });
+    }, { useDefaultTransport: true });
     writeResult(result, options.json);
     return result.status === 'success' ? 0 : result.status === 'partial' ? 2 : 1;
   } catch (error) {

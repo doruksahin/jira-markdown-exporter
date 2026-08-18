@@ -1,5 +1,15 @@
 export type ExportStatus = 'success' | 'partial' | 'failed';
 
+export interface ExportedIssueFailure {
+  readonly code: string;
+  readonly operation: string;
+  readonly summary: string;
+  readonly status?: number;
+  readonly transportCode?: string;
+  readonly retryable?: boolean;
+  readonly attempts?: number;
+}
+
 export interface ExportedIssueResult {
   readonly key: string;
   readonly status: 'synced' | 'failed';
@@ -9,6 +19,7 @@ export interface ExportedIssueResult {
   readonly downloadedAttachments?: number;
   readonly warnings?: readonly string[];
   readonly error?: string;
+  readonly failure?: ExportedIssueFailure;
 }
 
 /** Public receipt returned by the runner and serialized by the CLI. */

@@ -5,6 +5,7 @@ import { loadOutputProfile } from '../output/output-profile.js';
 import { writeOutputProfileSnapshot } from '../output/profile-writer.js';
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 import type { OutputProfile } from '../output/output-profile.js';
+import { exporterTransportFailure } from '../transport.js';
 
 export interface RunExportOptions {
   readonly outputDir: string;
@@ -39,7 +40,8 @@ export async function runExport(reader: BoardIssueReader, options: RunExportOpti
       issues.push({ key, status: 'synced', issueDir: written.issueDir, comments: issue.comments.length,
         attachments: issue.attachments.length, downloadedAttachments: written.downloadedAttachments, warnings: written.warnings });
     } catch (error) {
-      issues.push({ key, status: 'failed', error: errorMessage(error) });
+      const failure = exporterTransportFailure(error);
+      issues.push({ key, status: 'failed', error: errorMessage(error), ...(failure ? { failure } : {}) });
     }
   }
   const synced = issues.filter((issue) => issue.status === 'synced').length;

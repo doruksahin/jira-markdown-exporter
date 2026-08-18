@@ -1,12 +1,18 @@
 import type { JiraConfig } from './config/jira-config.js';
 import type { ExportResult } from './domain/export-result.js';
 import { JiraBoardIssueReader } from './jira/jira-board-issue-reader.js';
+import { JiraSdkReadClient } from './jira/jira-read-client.js';
+import { nativeAttachmentTransport } from './jira/node-attachment-transport.js';
 import type { OutputProfile } from './output/output-profile.js';
 import type { BoardIssueReader } from './ports/board-issue-reader.js';
 import { runExport } from './runner/run-export.js';
+import {
+  ExporterTransportError,
+  type AttachmentGetTransport,
+  type JiraGetTransport,
+} from './transport.js';
+export { JIRA_MARKDOWN_EXPORTER_VERSION, WORK_OS_OUTPUT_PROFILE } from './version.js';
 
-export const JIRA_MARKDOWN_EXPORTER_VERSION = '0.2.1' as const;
-export const WORK_OS_OUTPUT_PROFILE = Object.freeze({ id: 'work-os-v1', version: 1 } as const);
 
 export interface JiraMarkdownExportRequest extends JiraConfig {
   readonly issueKeys?: readonly string[];
@@ -16,10 +22,10 @@ export interface JiraMarkdownExportRequest extends JiraConfig {
   readonly outputProfile: OutputProfile;
 }
 
-export interface JiraMarkdownExporterDependencies {
-  /** Test/provider seam. Production callers omit this and use the GET-only Jira reader. */
-  readonly reader?: BoardIssueReader;
-}
+export type JiraMarkdownExporterDependencies =
+  | Readonly<{ reader: BoardIssueReader; jiraGet?: never; attachmentGet?: never; useDefaultTransport?: never }>
+  | Readonly<{ jiraGet: JiraGetTransport; attachmentGet?: AttachmentGetTransport; reader?: never; useDefaultTransport?: never }>
+  | Readonly<{ useDefaultTransport: true; reader?: never; jiraGet?: never; attachmentGet?: never }>;
 
 /**
  * Runs the read-only Jira exporter from an explicit in-memory configuration.
@@ -27,13 +33,34 @@ export interface JiraMarkdownExporterDependencies {
  */
 export async function exportJiraMarkdown(
   request: JiraMarkdownExportRequest,
-  dependencies: JiraMarkdownExporterDependencies = {},
+  dependencies: JiraMarkdownExporterDependencies,
 ): Promise<ExportResult> {
-  const reader = dependencies.reader ?? new JiraBoardIssueReader({
+  const config = {
     host: request.host,
     email: request.email,
     apiToken: request.apiToken,
-  });
+  };
+  let reader: BoardIssueReader;
+  if ('reader' in dependencies && dependencies.reader) {
+    reader = dependencies.reader;
+  } else if ('jiraGet' in dependencies && dependencies.jiraGet) {
+    if (request.downloadAttachments && !dependencies.attachmentGet) {
+      throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUIRED', 'attachment');
+    }
+    const unavailableAttachment: AttachmentGetTransport = Object.freeze({
+      manualRedirects: true,
+      get: async () => { throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUIRED', 'attachment'); },
+    });
+    reader = new JiraBoardIssueReader(
+      config,
+      new JiraSdkReadClient(config, dependencies.jiraGet),
+      dependencies.attachmentGet || unavailableAttachment,
+    );
+  } else if ('useDefaultTransport' in dependencies && dependencies.useDefaultTransport === true) {
+    reader = new JiraBoardIssueReader(config, new JiraSdkReadClient(config), nativeAttachmentTransport(config));
+  } else {
+    throw new ExporterTransportError('JIRA_TRANSPORT_INVALID_RESPONSE', 'jira-json');
+  }
   return runExport(reader, {
     issueKeys: request.issueKeys,
     jql: request.jql,
@@ -44,5 +71,30 @@ export async function exportJiraMarkdown(
 }
 
 export type { JiraConfig } from './config/jira-config.js';
-export type { ExportResult, ExportedIssueResult, ExportStatus } from './domain/export-result.js';
+export type { ExportResult, ExportedIssueFailure, ExportedIssueResult, ExportStatus } from './domain/export-result.js';
 export type { OutputProfile, OutputProfileManifest } from './output/output-profile.js';
+export { ExporterTransportError } from './transport.js';
+export type {
+  AttachmentGetTransport,
+  AttachmentGetTransportRequest,
+  AttachmentGetTransportResponse,
+  ExporterTransportErrorCode,
+  ExporterTransportOperation,
+  JiraGetTransport,
+  JiraGetTransportRequest,
+  JiraGetTransportResponse,
+  TransportHeaders,
+} from './transport.js';
+export type { BoardIssueReader } from './ports/board-issue-reader.js';
+export { createJiraReadApi } from './jira/jira-read-api.js';
+export type {
+  JiraBoardRecord,
+  JiraFieldRecord,
+  JiraIssueEvidence,
+  JiraIssueList,
+  JiraIssueRecord,
+  JiraProjectRecord,
+  JiraReadApi,
+  JiraSprintRecord,
+  JiraUserRecord,
+} from './jira/jira-read-api.js';

@@ -4,7 +4,13 @@ import type { JiraConfig } from '../config/jira-config.js';
 import type { Version3Models } from 'jira.js/version3';
 import { adfToMarkdown } from './adf-to-markdown.js';
 import { assertAllowedAttachmentUrl } from './attachment-url-policy.js';
-import { JiraSdkReadClient, type JiraReadClient } from './jira-read-client.js';
+import type { JiraReadClient } from './jira-read-client.js';
+import {
+  ExporterTransportError,
+  type AttachmentGetTransport,
+  type AttachmentGetTransportResponse,
+  type TransportHeaders,
+} from '../transport.js';
 
 const PAGE_SIZE = 100;
 const ISSUE_FIELDS = [
@@ -14,9 +20,9 @@ const ISSUE_FIELDS = [
 
 export class JiraBoardIssueReader implements BoardIssueReader {
   constructor(
-    private readonly config: JiraConfig,
-    private readonly client: JiraReadClient = new JiraSdkReadClient(config),
-    private readonly request: typeof fetch = fetch,
+    private readonly config: Pick<JiraConfig, 'host'>,
+    private readonly client: JiraReadClient,
+    private readonly attachmentTransport?: AttachmentGetTransport,
   ) {}
 
   async searchIssueKeys(jql: string): Promise<readonly string[]> {
@@ -48,23 +54,29 @@ export class JiraBoardIssueReader implements BoardIssueReader {
   }
 
   async downloadAttachment(contentUrl: string): Promise<Uint8Array> {
-    let url = assertAllowedAttachmentUrl(contentUrl, this.config.host);
+    let url = allowedAttachmentUrl(contentUrl, this.config.host);
     for (let redirects = 0; redirects < 5; redirects += 1) {
-      const response = await this.request(url, {
-        method: 'GET',
-        headers: { Authorization: basicAuthorization(this.config) },
+      const response = await attachmentGet(this.attachmentTransport, {
+        url,
+        headers: Object.freeze({}),
+        responseType: 'bytes',
         redirect: 'manual',
       });
       if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get('location');
-        if (!location) throw new Error('Attachment redirect had no location');
-        url = assertAllowedAttachmentUrl(new URL(location, url).toString(), this.config.host);
+        const location = header(response.headers, 'location');
+        if (!location) throw new ExporterTransportError('ATTACHMENT_REDIRECT_INVALID', 'attachment', response.status);
+        url = allowedAttachmentUrl(new URL(location, url).toString(), this.config.host);
         continue;
       }
-      if (!response.ok) throw new Error(`Attachment HTTP ${response.status}`);
-      return new Uint8Array(await response.arrayBuffer());
+      if (response.status < 200 || response.status >= 300) {
+        throw new ExporterTransportError('ATTACHMENT_TRANSPORT_HTTP_ERROR', 'attachment', response.status);
+      }
+      if (!(response.body instanceof Uint8Array)) {
+        throw new ExporterTransportError('ATTACHMENT_TRANSPORT_INVALID_RESPONSE', 'attachment');
+      }
+      return new Uint8Array(response.body);
     }
-    throw new Error('Attachment exceeded redirect limit');
+    throw new ExporterTransportError('ATTACHMENT_REDIRECT_LIMIT', 'attachment');
   }
 
   private async fetchAllComments(issueKey: string): Promise<Version3Models.Comment[]> {
@@ -85,6 +97,39 @@ export class JiraBoardIssueReader implements BoardIssueReader {
     return comments;
   }
 
+}
+
+async function attachmentGet(
+  transport: AttachmentGetTransport | undefined,
+  request: Parameters<AttachmentGetTransport['get']>[0],
+): Promise<AttachmentGetTransportResponse> {
+  if (!transport || transport.manualRedirects !== true || typeof transport.get !== 'function') {
+    throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUIRED', 'attachment');
+  }
+  try {
+    const response = await transport.get(request);
+    if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599) {
+      throw new ExporterTransportError('ATTACHMENT_TRANSPORT_INVALID_RESPONSE', 'attachment');
+    }
+    return response;
+  } catch (error) {
+    if (error instanceof ExporterTransportError) throw error;
+    throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUEST_FAILED', 'attachment');
+  }
+}
+
+function allowedAttachmentUrl(url: string, jiraHost: string): string {
+  try {
+    return assertAllowedAttachmentUrl(url, jiraHost);
+  } catch (_error) {
+    throw new ExporterTransportError('ATTACHMENT_REDIRECT_REJECTED', 'attachment');
+  }
+}
+
+function header(headers: TransportHeaders | undefined, name: string): string {
+  const entry = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === name.toLowerCase());
+  const value = entry?.[1];
+  return Array.isArray(value) ? String(value[0] || '') : String(value || '');
 }
 
 export function convertBoardIssue(issue: Version3Models.Issue, rawComments: readonly Version3Models.Comment[], jiraHost: string): BoardIssueSnapshot {
@@ -150,8 +195,4 @@ function toIssueLink(link: Version3Models.IssueLink, jiraHost: string): readonly
     issueType: issue.fields?.issuetype?.name ?? '',
     assignee: issue.fields?.assignee?.displayName ?? '',
   }];
-}
-
-function basicAuthorization(config: JiraConfig): string {
-  return `Basic ${Buffer.from(`${config.email}:${config.apiToken}`).toString('base64')}`;
 }

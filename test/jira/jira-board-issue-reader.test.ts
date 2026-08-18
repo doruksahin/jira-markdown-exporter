@@ -72,11 +72,15 @@ describe('JiraBoardIssueReader', () => {
 
   it('follows a Jira attachment redirect to the trusted Atlassian media API', async () => {
     const urls: string[] = [];
-    const reader = new JiraBoardIssueReader(config, fakeClient(), (async (input) => {
-      urls.push(String(input));
-      if (urls.length === 1) return new Response(null, { status: 302, headers: { location: 'https://api.media.atlassian.com/file/1/binary' } });
-      return new Response(new Uint8Array([1, 2, 3]));
-    }) as typeof fetch);
+    const reader = new JiraBoardIssueReader(config, fakeClient(), {
+      manualRedirects: true,
+      get: async (request) => {
+        urls.push(request.url);
+        expect(request.redirect).toBe('manual');
+        if (urls.length === 1) return { status: 302, headers: { location: 'https://api.media.atlassian.com/file/1/binary' }, body: new Uint8Array() };
+        return { status: 200, headers: {}, body: new Uint8Array([1, 2, 3]) };
+      },
+    });
     await expect(reader.downloadAttachment('https://acme.atlassian.net/secure/attachment/1/file.png')).resolves.toEqual(new Uint8Array([1, 2, 3]));
     expect(urls).toEqual([
       'https://acme.atlassian.net/secure/attachment/1/file.png',

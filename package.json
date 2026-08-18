@@ -1,6 +1,6 @@
 {
   "name": "jira-markdown-exporter",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read-only Jira issue snapshots as deterministic Markdown packets.",
   "private": true,
   "license": "UNLICENSED",
@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./embedded": {
+      "types": "./dist/embedded.d.ts",
+      "import": "./dist/embedded.js"
     },
     "./profiles/*": "./profiles/*"
   },
@@ -49,6 +53,7 @@
   },
   "dependencies": {
     "adf-to-md": "^1.2.1",
+    "axios": "^1.19.0",
     "dotenv": "^17.4.2",
     "jira.js": "^5.3.1",
     "liquidjs": "^10.28.0"

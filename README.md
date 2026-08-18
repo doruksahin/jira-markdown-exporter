@@ -116,6 +116,21 @@ tracked team profile, local email, and Obsidian SecretStorage selection.
 The compatibility entrypoint [`src/board-sync/cli.ts`](src/board-sync/cli.ts)
 remains for standalone CLI consumers; it is not the Work OS runtime boundary.
 
+Work OS imports only `jira-markdown-exporter/embedded`. That entrypoint requires
+an injected `JiraGetTransport`; it has no native network fallback and its built
+runtime graph contains no `jira.js`, Axios, `fetch`, or XHR implementation.
+`createJiraReadApi({ host }, { jiraGet })` and embedded export accept only the
+Jira host; email and API token stay inside the injected transport that owns
+authorization. The facade owns the Jira paths, pagination,
+ownership JQL, standard issue fields, and normalized records used by Setup
+Doctor, boards, sync, and migration. The transport owns in-memory
+authentication at the final request boundary.
+
+Attachment download is disabled unless the caller also supplies an
+`AttachmentGetTransport` with `manualRedirects: true`. This keeps every
+redirect hop under the exporter's exact Jira/Atlassian origin policy; Obsidian
+`requestUrl` alone does not provide that capability.
+
 ## Usage
 
 ```bash
@@ -145,6 +160,9 @@ See the concrete `ATT-123` profile in [the output-profile guide](docs/output-pro
 
 In JSON mode, the final stdout line conforms to
 [schemas/export-receipt.schema.json](schemas/export-receipt.schema.json).
+Failed issue entries retain the existing `error` text and may also contain an
+allowlisted `failure` object for known transport errors: code, operation,
+summary, status, transport code, retryability, and attempt count only.
 Exit status `0` means every issue synced, `2` means a partial per-issue result,
 and `1` means the export failed.
 
@@ -170,15 +188,16 @@ completed packet. The `ATT-1` success / `ATT-2` failure fixture in
 `partial` receipt and leaves `ATT-1/40 Jira/00 Issue.md` readable. Treat both
 examples as public compatibility behavior.
 
-### Jira SDK boundary
+### Jira read boundaries
 
-The exporter uses the typed `jira.js` Cloud v3 client only for issue JSON,
-comment pages, and enhanced JQL pages. Its intentionally narrow
+The Node CLI uses the typed `jira.js` Cloud v3 client for issue JSON, comment
+pages, and enhanced JQL pages. Its intentionally narrow
 [`JiraReadClient`](src/jira/jira-read-client.ts) exposes only those read
 operations, so exporter code cannot reach Jira mutation APIs by accident.
 Attachment binaries remain on native `fetch`: their manual redirect handling
 and exact Jira/Atlassian Media origin allowlist are a separate security
-boundary. The adapter regression fakes these two transports independently.
+boundary. The embedded subpath instead uses its required GET callback and the
+same reader/output pipeline; it never imports the Node transports.
 
 ### Linked work items
 
