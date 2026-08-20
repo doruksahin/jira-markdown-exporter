@@ -48,7 +48,6 @@ export async function exportJiraMarkdown(
       throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUIRED', 'attachment');
     }
     const unavailableAttachment: AttachmentGetTransport = Object.freeze({
-      manualRedirects: true,
       get: async () => { throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUIRED', 'attachment'); },
     });
     reader = new JiraBoardIssueReader(

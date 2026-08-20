@@ -126,10 +126,11 @@ ownership JQL, standard issue fields, and normalized records used by Setup
 Doctor, boards, sync, and migration. The transport owns in-memory
 authentication at the final request boundary.
 
-Attachment download is disabled unless the caller also supplies an
-`AttachmentGetTransport` with `manualRedirects: true`. This keeps every
-redirect hop under the exporter's exact Jira/Atlassian origin policy; Obsidian
-`requestUrl` alone does not provide that capability.
+Attachment download is enabled when the caller also supplies an
+`AttachmentGetTransport`. The exporter derives the exact Jira REST v3 content
+endpoint from the attachment ID and requests it with `redirect=false`; callers
+do not execute Jira-provided content URLs. This lets Obsidian `requestUrl`
+return bytes without exposing credentials to a redirected origin.
 
 ## Usage
 

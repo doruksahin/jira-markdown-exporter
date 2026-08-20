@@ -11,7 +11,7 @@ export interface ProfileWriteOptions {
   readonly outputDir: string;
   readonly profile: OutputProfile;
   readonly downloadAttachments?: boolean;
-  readonly downloadAttachment?: (contentUrl: string) => Promise<Uint8Array>;
+  readonly downloadAttachment?: (attachment: BoardAttachmentSnapshot) => Promise<Uint8Array>;
 }
 
 export interface ProfileWriteResult {
@@ -118,13 +118,9 @@ async function writeAttachmentBinaries(
   const attachmentDir = join(issueDir, options.profile.manifest.attachmentsDirectory);
   await mkdir(attachmentDir, { recursive: true });
   for (const attachment of sortedAttachments(issue.attachments)) {
-    if (!attachment.contentUrl) {
-      warnings.push(`${attachment.filename}: Jira attachment content URL is unavailable`);
-      continue;
-    }
     const safeName = attachmentStorageName(attachment);
     try {
-      await writeFile(join(attachmentDir, safeName), await options.downloadAttachment(attachment.contentUrl));
+      await writeFile(join(attachmentDir, safeName), await options.downloadAttachment(attachment));
       localPaths.set(attachment.id, `${options.profile.manifest.attachmentsDirectory}/${safeName}`);
     } catch (error) {
       warnings.push(`${attachment.filename}: ${errorMessage(error)}`);

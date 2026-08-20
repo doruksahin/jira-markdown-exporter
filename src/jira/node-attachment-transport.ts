@@ -3,7 +3,6 @@ import type { JiraConfig } from '../config/jira-config.js';
 
 export function nativeAttachmentTransport(config: JiraConfig): AttachmentGetTransport {
   return Object.freeze({
-    manualRedirects: true as const,
     get: async (request: Parameters<AttachmentGetTransport['get']>[0]) => {
       let response: Response;
       try {
@@ -13,7 +12,7 @@ export function nativeAttachmentTransport(config: JiraConfig): AttachmentGetTran
             ...request.headers,
             Authorization: `Basic ${Buffer.from(`${config.email}:${config.apiToken}`).toString('base64')}`,
           },
-          redirect: 'manual',
+          redirect: 'error',
         });
       } catch (_error) {
         throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUEST_FAILED', 'attachment');

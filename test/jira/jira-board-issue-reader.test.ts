@@ -70,22 +70,31 @@ describe('JiraBoardIssueReader', () => {
     expect(() => assertAllowedAttachmentUrl('https://api.media.atlassian.com.evil.example/file', config.host)).toThrow('outside the trusted Jira/Atlassian origins');
   });
 
-  it('follows a Jira attachment redirect to the trusted Atlassian media API', async () => {
+  it('downloads attachment bytes from the canonical non-redirecting Jira endpoint', async () => {
     const urls: string[] = [];
     const reader = new JiraBoardIssueReader(config, fakeClient(), {
-      manualRedirects: true,
       get: async (request) => {
         urls.push(request.url);
-        expect(request.redirect).toBe('manual');
-        if (urls.length === 1) return { status: 302, headers: { location: 'https://api.media.atlassian.com/file/1/binary' }, body: new Uint8Array() };
         return { status: 200, headers: {}, body: new Uint8Array([1, 2, 3]) };
       },
     });
-    await expect(reader.downloadAttachment('https://acme.atlassian.net/secure/attachment/1/file.png')).resolves.toEqual(new Uint8Array([1, 2, 3]));
-    expect(urls).toEqual([
-      'https://acme.atlassian.net/secure/attachment/1/file.png',
-      'https://api.media.atlassian.com/file/1/binary',
-    ]);
+    await expect(reader.downloadAttachment(attachment('1'))).resolves.toEqual(new Uint8Array([1, 2, 3]));
+    expect(urls).toEqual(['https://acme.atlassian.net/rest/api/3/attachment/content/1?redirect=false']);
+  });
+
+  it('does not execute Jira content URLs and rejects redirects or malformed attachment IDs', async () => {
+    const urls: string[] = [];
+    const reader = new JiraBoardIssueReader(config, fakeClient(), {
+      get: async (request) => {
+        urls.push(request.url);
+        return { status: 303, headers: { location: 'https://evil.example/file' }, body: new Uint8Array() };
+      },
+    });
+    await expect(reader.downloadAttachment({ ...attachment('1'), contentUrl: 'https://evil.example/file' }))
+      .rejects.toMatchObject({ code: 'ATTACHMENT_TRANSPORT_HTTP_ERROR', status: 303 });
+    await expect(reader.downloadAttachment(attachment('../1')))
+      .rejects.toMatchObject({ code: 'ATTACHMENT_REDIRECT_REJECTED' });
+    expect(urls).toEqual(['https://acme.atlassian.net/rest/api/3/attachment/content/1?redirect=false']);
   });
 
   it('renders an attached ADF media node as a local Markdown image', () => {
@@ -113,4 +122,18 @@ function asJiraIssue(value: unknown) {
 
 function asJiraComments(value: unknown) {
   return value as import('jira.js/version3').Version3Models.PageOfComments;
+}
+
+function attachment(id: string) {
+  return {
+    id,
+    filename: 'design.png',
+    mimeType: 'image/png',
+    size: 3,
+    author: 'Person',
+    created: '2026-08-20T00:00:00.000Z',
+    contentUrl: 'https://acme.atlassian.net/secure/attachment/1/design.png',
+    isImage: true,
+    inlineInDescription: true,
+  };
 }

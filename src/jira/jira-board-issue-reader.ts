@@ -3,13 +3,11 @@ import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 import type { JiraConfig } from '../config/jira-config.js';
 import type { Version3Models } from 'jira.js/version3';
 import { adfToMarkdown } from './adf-to-markdown.js';
-import { assertAllowedAttachmentUrl } from './attachment-url-policy.js';
 import type { JiraReadClient } from './jira-read-client.js';
 import {
   ExporterTransportError,
   type AttachmentGetTransport,
   type AttachmentGetTransportResponse,
-  type TransportHeaders,
 } from '../transport.js';
 
 const PAGE_SIZE = 100;
@@ -53,30 +51,19 @@ export class JiraBoardIssueReader implements BoardIssueReader {
     return convertBoardIssue(issue, comments, this.config.host);
   }
 
-  async downloadAttachment(contentUrl: string): Promise<Uint8Array> {
-    let url = allowedAttachmentUrl(contentUrl, this.config.host);
-    for (let redirects = 0; redirects < 5; redirects += 1) {
-      const response = await attachmentGet(this.attachmentTransport, {
-        url,
-        headers: Object.freeze({}),
-        responseType: 'bytes',
-        redirect: 'manual',
-      });
-      if (response.status >= 300 && response.status < 400) {
-        const location = header(response.headers, 'location');
-        if (!location) throw new ExporterTransportError('ATTACHMENT_REDIRECT_INVALID', 'attachment', response.status);
-        url = allowedAttachmentUrl(new URL(location, url).toString(), this.config.host);
-        continue;
-      }
-      if (response.status < 200 || response.status >= 300) {
-        throw new ExporterTransportError('ATTACHMENT_TRANSPORT_HTTP_ERROR', 'attachment', response.status);
-      }
-      if (!(response.body instanceof Uint8Array)) {
-        throw new ExporterTransportError('ATTACHMENT_TRANSPORT_INVALID_RESPONSE', 'attachment');
-      }
-      return new Uint8Array(response.body);
+  async downloadAttachment(attachment: BoardAttachmentSnapshot): Promise<Uint8Array> {
+    const response = await attachmentGet(this.attachmentTransport, {
+      url: attachmentContentUrl(attachment.id, this.config.host),
+      headers: Object.freeze({}),
+      responseType: 'bytes',
+    });
+    if (response.status !== 200) {
+      throw new ExporterTransportError('ATTACHMENT_TRANSPORT_HTTP_ERROR', 'attachment', response.status);
     }
-    throw new ExporterTransportError('ATTACHMENT_REDIRECT_LIMIT', 'attachment');
+    if (!(response.body instanceof Uint8Array)) {
+      throw new ExporterTransportError('ATTACHMENT_TRANSPORT_INVALID_RESPONSE', 'attachment');
+    }
+    return new Uint8Array(response.body);
   }
 
   private async fetchAllComments(issueKey: string): Promise<Version3Models.Comment[]> {
@@ -103,7 +90,7 @@ async function attachmentGet(
   transport: AttachmentGetTransport | undefined,
   request: Parameters<AttachmentGetTransport['get']>[0],
 ): Promise<AttachmentGetTransportResponse> {
-  if (!transport || transport.manualRedirects !== true || typeof transport.get !== 'function') {
+  if (!transport || typeof transport.get !== 'function') {
     throw new ExporterTransportError('ATTACHMENT_TRANSPORT_REQUIRED', 'attachment');
   }
   try {
@@ -118,18 +105,19 @@ async function attachmentGet(
   }
 }
 
-function allowedAttachmentUrl(url: string, jiraHost: string): string {
+function attachmentContentUrl(attachmentId: string, jiraHost: string): string {
+  if (!/^\d+$/.test(attachmentId)) {
+    throw new ExporterTransportError('ATTACHMENT_REDIRECT_REJECTED', 'attachment');
+  }
   try {
-    return assertAllowedAttachmentUrl(url, jiraHost);
+    const origin = new URL(jiraHost).origin;
+    const url = new URL(`/rest/api/3/attachment/content/${encodeURIComponent(attachmentId)}`, origin);
+    url.searchParams.set('redirect', 'false');
+    if (url.origin !== origin) throw new Error('origin mismatch');
+    return url.toString();
   } catch (_error) {
     throw new ExporterTransportError('ATTACHMENT_REDIRECT_REJECTED', 'attachment');
   }
-}
-
-function header(headers: TransportHeaders | undefined, name: string): string {
-  const entry = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === name.toLowerCase());
-  const value = entry?.[1];
-  return Array.isArray(value) ? String(value[0] || '') : String(value || '');
 }
 
 export function convertBoardIssue(issue: Version3Models.Issue, rawComments: readonly Version3Models.Comment[], jiraHost: string): BoardIssueSnapshot {

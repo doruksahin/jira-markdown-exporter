@@ -1,4 +1,4 @@
-import type { BoardIssueSnapshot } from '../domain/board-snapshot.js';
+import type { BoardAttachmentSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
 import { loadOutputProfile } from './output-profile.js';
 import {
   attachmentStorageName,
@@ -10,7 +10,7 @@ import {
 export interface WorkOsV1WriteOptions {
   readonly outputDir: string;
   readonly downloadAttachments?: boolean;
-  readonly downloadAttachment?: (contentUrl: string) => Promise<Uint8Array>;
+  readonly downloadAttachment?: (attachment: BoardAttachmentSnapshot) => Promise<Uint8Array>;
 }
 
 export type WorkOsV1WriteResult = ProfileWriteResult;

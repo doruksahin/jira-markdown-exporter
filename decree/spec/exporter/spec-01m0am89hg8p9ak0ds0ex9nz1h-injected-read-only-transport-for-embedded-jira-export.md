@@ -33,12 +33,12 @@ fields, and normalized Work OS records. The standalone CLI keeps the existing
 `jira.js` and native transport path, preserving
 its flags, receipt, output bytes, and attachment behavior.
 
-Attachment bytes remain a separate security boundary. An embedded caller may
-download them only through a callback that explicitly declares manual-redirect
-support. The exporter validates every initial and redirected URL against the
-existing exact-origin policy. An embedded caller without that capability can
-export Markdown, but an attachment-enabled request fails before any Jira read
-or filesystem write.
+Attachment bytes remain a separate security boundary. The exporter derives the
+content URL from the validated Jira origin and immutable attachment ID and
+requests Jira REST v3 with `redirect=false`. An embedded caller supplies only
+an injected byte GET callback; it never receives or chooses an attachment
+origin. An embedded caller without that capability can export Markdown, but an
+attachment-enabled request fails before any Jira read or filesystem write.
 
 ## Technical Design
 
@@ -49,10 +49,10 @@ or filesystem write.
 - `JiraGetTransport` receives `{url, headers, responseType: "json",
   timeoutMs?}` and returns `{status, headers?, body}`. There is no method field,
   so a caller cannot request a Jira mutation through this seam.
-- `AttachmentGetTransport` declares `manualRedirects: true` and exposes a GET
-  callback receiving `{url, headers, responseType: "bytes",
-  redirect: "manual", timeoutMs?}`. Responses include status, headers, and
-  bytes so the exporter, not the host runtime, evaluates each redirect.
+- `AttachmentGetTransport` exposes a GET callback receiving `{url, headers,
+  responseType: "bytes", timeoutMs?}`. The URL is exporter-derived, uses the
+  configured Jira origin, and includes `redirect=false`; callers cannot supply
+  a different endpoint. Responses include status, headers, and bytes.
 - `ExporterTransportError` exposes only a stable bounded code, operation, and
   optional HTTP status. Its message and enumerable fields never include
   credentials, response bodies, or full request URLs/query strings.
@@ -60,9 +60,9 @@ or filesystem write.
 `exportJiraMarkdown` requires one explicit dependency mode: a provider-neutral
 `reader`, an embedded `jiraGet` callback with optional attachment capability,
 or `useDefaultTransport: true`. The CLI uses the third mode. In embedded mode,
-`downloadAttachments: true` without a manual-redirect-capable attachment
-transport throws `ATTACHMENT_TRANSPORT_REQUIRED` before the reader or writer
-runs. No embedded call silently falls back to native network access.
+`downloadAttachments: true` without an attachment byte transport throws
+`ATTACHMENT_TRANSPORT_REQUIRED` before the reader or writer runs. No embedded
+call silently falls back to native network access.
 
 ### Embedded Jira read facade
 
@@ -77,18 +77,19 @@ tracked custom-field IDs. The Node entrypoint retains `jira.js` for CLI parity.
 
 ### Attachment adapter
 
-`JiraBoardIssueReader` invokes a narrow attachment GET callback. The default
-callback bridges native `fetch` with `redirect: "manual"`; injected callbacks
-must advertise the same capability. Before each request and after each 3xx
-location resolution, `assertAllowedAttachmentUrl` enforces the configured Jira
-origin or exact `https://api.media.atlassian.com` origin. Missing locations,
-foreign redirects, malformed responses, non-2xx statuses, and redirect-limit
-exhaustion fail with stable redacted errors. Authorization is passed in memory
-but never included in an error or receipt.
+`JiraBoardIssueReader` invokes a narrow attachment GET callback with the
+canonical `/rest/api/3/attachment/content/{id}?redirect=false` URL. Attachment
+IDs are validated before URL construction and the completed URL must retain the
+configured HTTPS Jira origin. Only `200` with a byte body succeeds; redirects,
+foreign origins, malformed responses, and non-success statuses fail with stable
+redacted errors. The default Node callback additionally uses `redirect:
+"error"`; Obsidian can use `requestUrl` because Jira itself does not redirect.
+Authorization is passed in memory but never included in an error or receipt.
+Jira-provided `contentUrl` metadata is never executed as a download target.
 
 ### Release identity
 
-This additive public API is released as package version `0.2.2`, including the
+The non-redirecting attachment transport is released as package version `0.2.4`, including the
 matching exported runtime version constant and lockfile importer version. The
 consumer refreshes its vendored archive from the exact `npm pack` artifact and
 verified SHA-256; this SPEC does not modify the vault vendor copy.
@@ -102,8 +103,10 @@ status, thrown, and malformed results map to bounded error facts without token,
 body, JQL, or full-URL leakage. Library tests compare provider-neutral reader,
 injected transport, and explicit default selection behavior and prove missing
 attachment capability fails before transport or writes. Attachment tests prove
-manual redirects are requested, each hop is origin-checked, and incapable or
-unsafe transports fail closed. Existing fixtures prove CLI/output parity.
+the canonical attachment-ID endpoint includes `redirect=false`, foreign or
+malformed inputs cannot influence the request, redirect responses fail closed,
+and incapable transports fail before writes. Existing fixtures prove CLI/output
+parity.
 
 Run `pnpm check`, then `npm pack --pack-destination <temporary-directory>` and
 record the resulting tarball name and SHA-256 for the Work OS vendor refresh.
@@ -123,3 +126,7 @@ record the resulting tarball name and SHA-256 for the Work OS vendor refresh.
 - [x] Embedded export and read-facade configuration require only the Jira host; email and API token remain inside the injected authorization transport.
 - [x] Failed issue receipts preserve an allowlisted structured projection of known transport errors without removing the existing error text or exposing request data.
 - [x] Metadata-only sync labels attachment downloads as intentionally disabled, while requested download failures retain explicit failure wording.
+- [x] Attachment downloads derive a same-origin Jira REST v3 URL exclusively from the attachment ID and set `redirect=false`.
+- [x] The embedded byte transport accepts only exporter-owned GET requests and fails closed on redirects, invalid responses, and missing capability.
+- [x] The Node CLI retains attachment downloads and rejects unexpected redirects without changing flags, receipts, output paths, or partial-failure behavior.
+- [x] Package and runtime constant identify version 0.2.4; `pnpm check` and a clean `npm pack` pass.

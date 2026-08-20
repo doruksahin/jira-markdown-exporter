@@ -21,7 +21,6 @@ export interface AttachmentGetTransportRequest {
   readonly url: string;
   readonly headers: Readonly<Record<string, string>>;
   readonly responseType: 'bytes';
-  readonly redirect: 'manual';
   readonly timeoutMs?: number;
 }
 
@@ -32,7 +31,6 @@ export interface AttachmentGetTransportResponse {
 }
 
 export interface AttachmentGetTransport {
-  readonly manualRedirects: true;
   readonly get: (
     request: AttachmentGetTransportRequest,
   ) => Promise<AttachmentGetTransportResponse>;
@@ -73,7 +71,7 @@ const ERROR_MESSAGES: Readonly<Record<ExporterTransportErrorCode, string>> = Obj
   JIRA_TRANSPORT_INVALID_RESPONSE: 'Jira transport returned an invalid response',
   JIRA_TRANSPORT_HTTP_ERROR: 'Jira transport returned an HTTP error',
   JIRA_PAGINATION_INVALID: 'Jira pagination response was invalid',
-  ATTACHMENT_TRANSPORT_REQUIRED: 'Attachment download requires a manual-redirect transport',
+  ATTACHMENT_TRANSPORT_REQUIRED: 'Attachment download requires an injected byte transport',
   ATTACHMENT_TRANSPORT_REQUEST_FAILED: 'Attachment transport request failed',
   ATTACHMENT_TRANSPORT_INVALID_RESPONSE: 'Attachment transport returned an invalid response',
   ATTACHMENT_TRANSPORT_HTTP_ERROR: 'Attachment transport returned an HTTP error',

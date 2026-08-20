@@ -29,6 +29,11 @@ and a schema-valid final JSON receipt.
 
 ## Technical Design
 
+The later embedded-transport contract
+`SPEC-01M0AM89HG8P9AK0DS0EX9NZ1H` is authoritative for attachment HTTP
+transport. This V1 record remains authoritative for output ownership,
+deterministic rendering, CLI behavior, and partial-result semantics.
+
 `src/domain` defines immutable issue, comment, attachment, and receipt types.
 `src/ports` declares a read-only reader. `src/runner` resolves issue keys,
 processes each issue independently, and returns success, partial, or failed.
