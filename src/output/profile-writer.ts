@@ -3,6 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { Liquid } from 'liquidjs';
 import type { BoardAttachmentSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
 import { errorMessage } from '../domain/errors.js';
+import { exporterTransportFailure } from '../transport.js';
 import { normalizeIssueKey } from '../domain/board-snapshot.js';
 import type { OutputProfile } from './output-profile.js';
 import { createExportTemplateModel, sortedAttachments } from './template-model.js';
@@ -123,7 +124,9 @@ async function writeAttachmentBinaries(
       await writeFile(join(attachmentDir, safeName), await options.downloadAttachment(attachment));
       localPaths.set(attachment.id, `${options.profile.manifest.attachmentsDirectory}/${safeName}`);
     } catch (error) {
-      warnings.push(`${attachment.filename}: ${errorMessage(error)}`);
+      const transportFailure = exporterTransportFailure(error);
+      const status = transportFailure?.status;
+      warnings.push(`${attachment.filename}: ${errorMessage(error)}${status === undefined ? '' : ` (HTTP ${status})`}`);
     }
   }
   return { downloaded: localPaths.size, localPaths, warnings };

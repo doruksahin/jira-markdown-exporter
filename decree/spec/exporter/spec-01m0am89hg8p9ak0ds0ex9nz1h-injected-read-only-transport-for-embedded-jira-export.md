@@ -89,7 +89,7 @@ Jira-provided `contentUrl` metadata is never executed as a download target.
 
 ### Release identity
 
-The non-redirecting attachment transport is released as package version `0.2.4`, including the
+The non-redirecting attachment transport is released as package version `0.2.5`, including the
 matching exported runtime version constant and lockfile importer version. The
 consumer refreshes its vendored archive from the exact `npm pack` artifact and
 verified SHA-256; this SPEC does not modify the vault vendor copy.
@@ -129,4 +129,5 @@ record the resulting tarball name and SHA-256 for the Work OS vendor refresh.
 - [x] Attachment downloads derive a same-origin Jira REST v3 URL exclusively from the attachment ID and set `redirect=false`.
 - [x] The embedded byte transport accepts only exporter-owned GET requests and fails closed on redirects, invalid responses, and missing capability.
 - [x] The Node CLI retains attachment downloads and rejects unexpected redirects without changing flags, receipts, output paths, or partial-failure behavior.
-- [x] Package and runtime constant identify version 0.2.4; `pnpm check` and a clean `npm pack` pass.
+- [x] Attachment warnings expose a bounded HTTP status when available, without URLs, credentials, or response bodies.
+- [x] Package and runtime constant identify version 0.2.5; `pnpm check` and a clean `npm pack` pass.

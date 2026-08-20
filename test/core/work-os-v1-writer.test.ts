@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { BoardIssueSnapshot } from '../../src/domain/board-snapshot.js';
 import { attachmentStorageName, writeWorkOsV1Snapshot } from '../../src/output/work-os-v1-writer.js';
+import { ExporterTransportError } from '../../src/transport.js';
 
 const temporaryDirectories: string[] = [];
 afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))));
@@ -72,6 +73,21 @@ describe('work-os-v1 writer', () => {
     expect(failedDownload).toContain('Image could not be downloaded: design.png');
     expect(failedDownload).not.toContain('downloads are disabled');
     expect(await readFile(join(initial.issueDir, '20 Attachments.md'), 'utf8')).toContain('download failed');
+  });
+
+  it('records only the bounded HTTP status for attachment transport failures', async () => {
+    const outputDir = await temporaryDirectory();
+    const result = await writeWorkOsV1Snapshot(fixtureIssue(), {
+      outputDir,
+      downloadAttachments: true,
+      downloadAttachment: async () => {
+        throw new ExporterTransportError('ATTACHMENT_TRANSPORT_HTTP_ERROR', 'attachment', 303);
+      },
+    });
+
+    expect(result.warnings).toEqual(['design.png: Attachment transport returned an HTTP error (HTTP 303)']);
+    expect(await readFile(join(result.issueDir, '90 Sync.md'), 'utf8'))
+      .toContain('design.png: Attachment transport returned an HTTP error (HTTP 303)');
   });
 });
 
