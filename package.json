@@ -7,11 +7,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./embedded": {
       "types": "./dist/embedded.d.ts",
-      "import": "./dist/embedded.js"
+      "import": "./dist/embedded.js",
+      "default": "./dist/embedded.js"
     },
     "./profiles/*": "./profiles/*"
   },
@@ -55,6 +57,7 @@
     "release:check": "pnpm check && npm pack --dry-run --ignore-scripts"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
     "axios": "^1.19.0",
     "commander": "^14.0.3",
     "jira.js": "^5.3.1",

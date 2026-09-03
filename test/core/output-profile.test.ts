@@ -164,7 +164,7 @@ describe('output profiles', () => {
       id: 'unsafe-v1', schemaVersion: 1, ownedDirectory: 'Jira', attachmentsDirectory: 'files',
       files: [{ template: 'summary.md.liquid', output: '../00 Task.md' }],
     }));
-    await expect(loadOutputProfile({ templateDir: profileDir })).rejects.toThrow('unsafe output path');
+    await expect(loadOutputProfile({ templateDir: profileDir })).rejects.toThrow('Invalid output profile manifest');
   });
 
   it.each([
@@ -201,7 +201,7 @@ describe('output profiles', () => {
     await writeFile(join(profileDir, 'profile.json'), JSON.stringify(manifest));
     await writeFile(join(profileDir, 'summary.md.liquid'), '# summary\n');
 
-    await expect(loadOutputProfile({ templateDir: profileDir })).rejects.toThrow('unknown');
+    await expect(loadOutputProfile({ templateDir: profileDir })).rejects.toThrow('additional properties');
   });
 
   it('revalidates in-memory profiles before writing', async () => {
@@ -217,7 +217,7 @@ describe('output profiles', () => {
     await expect(writeOutputProfileSnapshot(fixtureIssue(), {
       outputDir,
       profile: unsafeProfile,
-    })).rejects.toThrow('unsafe ownedDirectory');
+    })).rejects.toThrow('Invalid output profile manifest');
     expect(await readFile(join(outputDir, 'summary.md'), 'utf8').catch(() => 'missing')).toBe('missing');
   });
 

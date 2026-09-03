@@ -12,6 +12,8 @@ import {
   type JiraGetTransport,
 } from './transport.js';
 export { JIRA_MARKDOWN_EXPORTER_VERSION } from './version.js';
+export { parseExportReceipt, parseOutputProfileManifest } from './schema-parsers.js';
+export { calculateOutputProfileDigest } from './output/output-profile.js';
 
 
 export interface JiraMarkdownExportRequest extends JiraConfig {

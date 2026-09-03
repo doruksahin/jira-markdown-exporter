@@ -302,6 +302,13 @@ not a completed export receipt. Both forms can contain issue-derived
 filenames, warnings, or errors, so keep them private or sanitize them before
 wider distribution.
 
+Node consumers can use the package's `parseExportReceipt` rather than copying
+the receipt schema into runner code. `parseOutputProfileManifest` and
+`calculateOutputProfileDigest` provide the corresponding profile checks.
+These functions are available from both the package root and its `/embedded`
+entrypoint; publication policy and cross-document comparisons remain the
+runner's responsibility.
+
 Exit status is the final process signal:
 
 | Exit | Result | Runner action |

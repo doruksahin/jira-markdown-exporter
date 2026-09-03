@@ -7,6 +7,8 @@ import { runExport } from './runner/run-export.js';
 import { ExporterTransportError, type AttachmentGetTransport, type JiraGetTransport } from './transport.js';
 
 export { JIRA_MARKDOWN_EXPORTER_VERSION } from './version.js';
+export { parseExportReceipt, parseOutputProfileManifest } from './schema-parsers.js';
+export { calculateOutputProfileDigest } from './output/output-profile.js';
 
 export interface EmbeddedJiraMarkdownExportRequest extends Pick<JiraConfig, 'host'> {
   readonly issueKeys?: readonly string[];

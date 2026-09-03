@@ -39,6 +39,7 @@ describe('consumer-neutral package boundary', () => {
       private?: boolean;
       license: string;
       bin: Record<string, string>;
+      exports: Record<string, { types: string; import: string; default: string }>;
       publishConfig: { access: string; registry: string };
     };
 
@@ -47,6 +48,16 @@ describe('consumer-neutral package boundary', () => {
     expect(manifest.license).toBe('MIT');
     expect(manifest.bin).toEqual({
       'jira-markdown-export': 'dist/cli/main.js',
+    });
+    expect(manifest.exports['.']).toEqual({
+      types: './dist/index.d.ts',
+      import: './dist/index.js',
+      default: './dist/index.js',
+    });
+    expect(manifest.exports['./embedded']).toEqual({
+      types: './dist/embedded.d.ts',
+      import: './dist/embedded.js',
+      default: './dist/embedded.js',
     });
     expect(manifest.publishConfig).toEqual({
       access: 'public',
