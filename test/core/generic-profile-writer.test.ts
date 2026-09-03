@@ -3,34 +3,35 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { BoardIssueSnapshot } from '../../src/domain/board-snapshot.js';
-import { attachmentStorageName, writeWorkOsV1Snapshot } from '../../src/output/work-os-v1-writer.js';
+import { loadOutputProfile } from '../../src/output/output-profile.js';
+import { attachmentStorageName, writeOutputProfileSnapshot } from '../../src/output/profile-writer.js';
 import { ExporterTransportError } from '../../src/transport.js';
 
 const temporaryDirectories: string[] = [];
 afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))));
 
-describe('work-os-v1 writer', () => {
-  it('owns only 40 Jira and is idempotent', async () => {
+describe('generic-v1 writer', () => {
+  it('owns only its snapshot directory and is idempotent', async () => {
     const outputDir = await temporaryDirectory();
-    const taskDir = join(outputDir, 'ATT-123');
-    await mkdir(taskDir, { recursive: true });
-    const humanNote = join(taskDir, '00 Task.md');
-    await writeFile(humanNote, '# Human-owned\n');
+    const issueRoot = join(outputDir, 'PROJ-123');
+    await mkdir(issueRoot, { recursive: true });
+    const consumerFile = join(issueRoot, 'consumer-note.md');
+    await writeFile(consumerFile, '# Consumer-owned\n');
 
-    const first = await writeWorkOsV1Snapshot(fixtureIssue(), {
+    const first = await writeGenericSnapshot(fixtureIssue(), {
       outputDir, downloadAttachments: true, downloadAttachment: async () => new Uint8Array([1, 2, 3]),
     });
-    const generatedFiles = ['00 Issue.md', '10 Comments.md', '20 Attachments.md', '90 Sync.md'];
+    const generatedFiles = ['issue.md', 'comments.md', 'attachments.md', 'metadata.md'];
     const initial = await Promise.all(generatedFiles.map((file) => readFile(join(first.issueDir, file), 'utf8')));
-    expect(initial[0]).toContain('_No linked work items._');
+    expect(initial[0]).toContain('_No linked issues._');
     await writeFile(join(first.issueDir, 'obsolete.md'), 'owned and removable\n');
-    await writeWorkOsV1Snapshot(fixtureIssue(), {
+    await writeGenericSnapshot(fixtureIssue(), {
       outputDir, downloadAttachments: true, downloadAttachment: async () => new Uint8Array([1, 2, 3]),
     });
     const repeated = await Promise.all(generatedFiles.map((file) => readFile(join(first.issueDir, file), 'utf8')));
 
     expect(repeated).toEqual(initial);
-    expect(await readFile(humanNote, 'utf8')).toBe('# Human-owned\n');
+    expect(await readFile(consumerFile, 'utf8')).toBe('# Consumer-owned\n');
     await expect(readFile(join(first.issueDir, 'obsolete.md'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
     expect(await readFile(join(first.issueDir, 'attachments', '20-design.png'))).toEqual(Buffer.from([1, 2, 3]));
   });
@@ -46,10 +47,10 @@ describe('work-os-v1 writer', () => {
         { ...base.attachments[0], id: '21', contentUrl: 'https://example.test/content/21' },
       ],
     };
-    const result = await writeWorkOsV1Snapshot(issue, {
+    const result = await writeGenericSnapshot(issue, {
       outputDir, downloadAttachments: true, downloadAttachment: async () => new Uint8Array([9]),
     });
-    const markdown = await readFile(join(result.issueDir, '00 Issue.md'), 'utf8');
+    const markdown = await readFile(join(result.issueDir, 'issue.md'), 'utf8');
 
     expect(markdown).toContain('![first](<./attachments/20-design.png>)');
     expect(markdown).toContain('![second](<./attachments/21-design.png>)');
@@ -58,26 +59,25 @@ describe('work-os-v1 writer', () => {
     expect(attachmentStorageName({ id: 'id/unsafe', filename: '../evil?.png' })).toBe('id_unsafe-evil_.png');
   });
 
-  it('leaves a readable generated packet when a later refresh download fails', async () => {
+  it('distinguishes disabled attachment downloads from failed downloads', async () => {
     const outputDir = await temporaryDirectory();
-    const initial = await writeWorkOsV1Snapshot(fixtureIssue(), { outputDir });
-    const metadataOnly = await readFile(join(initial.issueDir, '00 Issue.md'), 'utf8');
+    const initial = await writeGenericSnapshot(fixtureIssue(), { outputDir });
+    const metadataOnly = await readFile(join(initial.issueDir, 'issue.md'), 'utf8');
     expect(metadataOnly).toContain('Attachment downloads are disabled for this sync: design.png');
     expect(metadataOnly).not.toContain('Image could not be downloaded');
-    expect(await readFile(join(initial.issueDir, '20 Attachments.md'), 'utf8'))
-      .toContain('downloads disabled for this sync');
-    await expect(writeWorkOsV1Snapshot(fixtureIssue(), {
+    expect(await readFile(join(initial.issueDir, 'attachments.md'), 'utf8')).toContain('not downloaded');
+    await expect(writeGenericSnapshot(fixtureIssue(), {
       outputDir, downloadAttachments: true, downloadAttachment: async () => { throw new Error('network down'); },
     })).resolves.toMatchObject({ downloadedAttachments: 0 });
-    const failedDownload = await readFile(join(initial.issueDir, '00 Issue.md'), 'utf8');
+    const failedDownload = await readFile(join(initial.issueDir, 'issue.md'), 'utf8');
     expect(failedDownload).toContain('Image could not be downloaded: design.png');
     expect(failedDownload).not.toContain('downloads are disabled');
-    expect(await readFile(join(initial.issueDir, '20 Attachments.md'), 'utf8')).toContain('download failed');
+    expect(await readFile(join(initial.issueDir, 'attachments.md'), 'utf8')).toContain('download failed');
   });
 
   it('records only the bounded HTTP status for attachment transport failures', async () => {
     const outputDir = await temporaryDirectory();
-    const result = await writeWorkOsV1Snapshot(fixtureIssue(), {
+    const result = await writeGenericSnapshot(fixtureIssue(), {
       outputDir,
       downloadAttachments: true,
       downloadAttachment: async () => {
@@ -86,22 +86,34 @@ describe('work-os-v1 writer', () => {
     });
 
     expect(result.warnings).toEqual(['design.png: Attachment transport returned an HTTP error (HTTP 303)']);
-    expect(await readFile(join(result.issueDir, '90 Sync.md'), 'utf8'))
+    expect(await readFile(join(result.issueDir, 'metadata.md'), 'utf8'))
       .toContain('design.png: Attachment transport returned an HTTP error (HTTP 303)');
   });
 });
 
+async function writeGenericSnapshot(
+  issue: BoardIssueSnapshot,
+  options: {
+    outputDir: string;
+    downloadAttachments?: boolean;
+    downloadAttachment?: (attachment: BoardIssueSnapshot['attachments'][number]) => Promise<Uint8Array>;
+  },
+) {
+  return writeOutputProfileSnapshot(issue, { ...options, profile: await loadOutputProfile() });
+}
+
 function fixtureIssue(): BoardIssueSnapshot {
   return {
-    key: 'ATT-123', url: 'https://example.test/browse/ATT-123', summary: 'A fixture',
+    key: 'PROJ-123', url: 'https://example.test/browse/PROJ-123', summary: 'A fixture',
     description: '![design](./attachments/design.png)', status: 'In Progress', issueType: 'Task', priority: 'Medium',
-    assignee: 'Doruk', reporter: 'PM', created: '2026-08-01T00:00:00.000Z', updated: '2026-08-02T00:00:00.000Z',
+    assignee: 'Person', reporter: 'Reporter', created: '2026-08-01T00:00:00.000Z', updated: '2026-08-02T00:00:00.000Z',
     labels: ['zeta', 'alpha'], parentKey: '', linkedIssues: [], comments: [], attachments: [{
       id: '20', filename: 'design.png', mimeType: 'image/png', size: 2048, author: 'Designer',
       created: '2026-08-02T00:00:00.000Z', contentUrl: 'https://example.test/content/20', isImage: true, inlineInDescription: true,
     }],
   };
 }
+
 async function temporaryDirectory(): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), 'jira-markdown-exporter-'));
   temporaryDirectories.push(directory);

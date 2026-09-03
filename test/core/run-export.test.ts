@@ -6,11 +6,23 @@ import type { BoardIssueSnapshot } from '../../src/domain/board-snapshot.js';
 import type { BoardIssueReader } from '../../src/ports/board-issue-reader.js';
 import { runExport } from '../../src/runner/run-export.js';
 import { ExporterTransportError } from '../../src/transport.js';
+import { JIRA_MARKDOWN_EXPORTER_VERSION } from '../../src/version.js';
 
 const temporaryDirectories: string[] = [];
 afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))));
 
 describe('runExport', () => {
+  it('publishes receipt provenance as required schema fields', async () => {
+    const schema = JSON.parse(await readFile(new URL('../../schemas/export-receipt.schema.json', import.meta.url), 'utf8')) as {
+      required: string[];
+      properties: Record<string, { pattern?: string }>;
+    };
+
+    expect(schema.required).toEqual(expect.arrayContaining(['exporterVersion', 'profileId', 'profileDigest']));
+    expect(new RegExp(schema.properties.profileDigest.pattern ?? '').test(`sha256:${'a'.repeat(64)}`)).toBe(true);
+    expect(new RegExp(schema.properties.profileDigest.pattern ?? '').test('sha256:not-a-digest')).toBe(false);
+  });
+
   it('reports a per-issue partial failure without discarding completed output', async () => {
     const outputDir = await temporaryDirectory();
     const reader = new FakeReader(new Map([
@@ -18,11 +30,20 @@ describe('runExport', () => {
     ]));
     const receipt = await runExport(reader, { outputDir, issueKeys: ['att-1', 'ATT-2'] });
 
-    expect(receipt).toMatchObject({ schemaVersion: 1, status: 'partial', total: 2, synced: 1, failed: 1 });
+    expect(receipt).toMatchObject({
+      schemaVersion: 1,
+      exporterVersion: JIRA_MARKDOWN_EXPORTER_VERSION,
+      profileId: 'generic-v1',
+      profileDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      status: 'partial',
+      total: 2,
+      synced: 1,
+      failed: 1,
+    });
     expect(receipt.issues).toEqual(expect.arrayContaining([
       expect.objectContaining({ key: 'ATT-2', status: 'failed', error: 'not found' }),
     ]));
-    expect(await readFile(join(outputDir, 'ATT-1', '40 Jira', '00 Issue.md'), 'utf8')).toContain('ATT-1');
+    expect(await readFile(join(outputDir, 'ATT-1', 'jira-snapshot', 'issue.md'), 'utf8')).toContain('ATT-1');
   });
 
   it('uses JQL when explicit keys are absent and de-duplicates normalized keys', async () => {

@@ -1,34 +1,43 @@
 # Jira Markdown Exporter
 
-## Purpose
+## Product boundary
 
-The source of truth for a read-only Jira issue → deterministic Markdown packet
-CLI. It powers the Obsidian Work OS **Jira → Obsidian sync** flow without
-writing changes back to Jira.
+This repository owns one product: a standalone, read-only Jira Cloud exporter.
+It accepts an issue-key or JQL selection, Jira credentials, an output root, and
+an output profile. It produces deterministic Markdown plus a versioned JSON
+receipt.
 
-## Source and consumer
+The exporter owns:
 
-- **Repository:** `doruksahin/jira-markdown-exporter` on GitHub.
-- **Local capsule:** `/Users/doruk/Desktop/PROJECTS/tools/jira-markdown-exporter`.
-- **Live consumer:** the Work OS plugin in the AdCreative Obsidian vault. Its
-  tracked runtime bundles the exact library entrypoint and canonical profile;
-  teammate setup has no path to this capsule.
-- **Output ownership:** only `<packet parent>/<ISSUE-KEY>/40 Jira/`; see the
-  `ATT-123` preservation regression in `test/core/work-os-v1-writer.test.ts`.
+- GET-only Jira access and pagination
+- provider normalization and ADF-to-Markdown conversion
+- attachment origin checks, download, and collision-safe filenames
+- safe Liquid profile loading and rendering
+- atomic replacement of the profile-owned directory
+- per-issue success, partial, and failure receipts
 
-## Distribution boundary
+The exporter does not own:
 
-GitHub is the source repository. The intended end-user installation channel is
-the versioned public npm package `jira-markdown-exporter`, which
-exposes the `jira-markdown-export` command through `package.json#bin`.
+- a consumer's repository layout or naming
+- packet initialization or lifecycle
+- publication, Git commits, pull requests, or deployment
+- user interfaces, schedulers, or secret stores
+- consumer-specific profiles
 
-The package is not published yet. `package.json` deliberately has
-`"private": true` and `"license": "UNLICENSED"` until a license and npm
-publishing authority are chosen. Follow `README.md`'s **Public GitHub versus
-npm publishing** section before changing either guard.
+Consumers compose with the exporter through `--template-dir`, the staged
+filesystem tree, and `schemas/export-receipt.schema.json`. The exporter must
+build, test, package, and release without access to a consumer repository.
 
-## Local state and secrets
+## Distribution
 
-The CLI reads `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN`. Library callers
-pass the same values through the typed in-memory request. Never commit or copy
-credentials into this repository, GitHub, npm, the vault, or generated files.
+GitHub is the source repository. The intended stable installation channel is
+the versioned npm package and its `jira-markdown-export` binary. Publication is
+currently blocked by `private: true` and `UNLICENSED` until license and release
+authority are explicitly decided.
+
+## Secrets
+
+The CLI reads `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` from its process
+environment. Library callers pass the same values in memory. These values must
+never enter source control, profiles, receipts, logs, fixtures, or generated
+Markdown.

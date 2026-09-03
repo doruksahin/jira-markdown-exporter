@@ -1,49 +1,35 @@
 # Output profiles
 
-An output profile converts one provider-neutral `BoardIssueSnapshot` into a
-deterministic Markdown packet. It changes presentation only; Jira reads,
-attachment downloads, attachment filename safety, inline-media localization,
-atomic replacement, and the JSON receipt remain exporter behavior.
+An output profile converts a normalized issue snapshot into deterministic
+Markdown. It controls presentation only. Jira reads, attachment downloads,
+filename safety, inline-media localization, atomic replacement, and receipts
+remain exporter behavior.
 
-The built-in default is [`work-os-v1`](../profiles/work-os-v1/profile.json).
-For `ATT-123`, it owns only:
+## Select a profile
 
-```text
-<output-dir>/ATT-123/40 Jira/
-├── 00 Issue.md
-├── 10 Comments.md
-├── 20 Attachments.md
-├── 90 Sync.md
-└── attachments/
-```
-
-`ATT-123/00 Task.md` remains human-owned. This is enforced by
-[`test/core/work-os-v1-writer.test.ts`](../test/core/work-os-v1-writer.test.ts).
-
-## Use a profile
-
-The default and the explicit built-in selection are equivalent:
+The built-in `generic-v1` profile is the default:
 
 ```sh
-jira-markdown-export --issue-keys ATT-123 --output-dir /path/to/packets
-jira-markdown-export --issue-keys ATT-123 --output-dir /path/to/packets --profile work-os-v1
+jira-markdown-export \
+  --issue-keys PROJ-123 \
+  --output-dir /tmp/jira-export \
+  --profile generic-v1
 ```
 
-Use a local profile directory only when a different packet layout is needed:
+Select a checked-out external profile with an absolute path:
 
 ```sh
-jira-markdown-export --issue-keys ATT-123 \
-  --output-dir /path/to/packets \
-  --template-dir /path/to/compact-profile
+jira-markdown-export \
+  --issue-keys PROJ-123 \
+  --output-dir /tmp/jira-export \
+  --template-dir /absolute/path/to/profile
 ```
 
-`--profile` and `--template-dir` are deliberately mutually exclusive. Work OS
-does not pass either flag, so it stays on the byte-compatible `work-os-v1`
-profile.
+`--profile` and `--template-dir` are mutually exclusive.
 
-## Minimal local profile
+## Minimal external profile
 
-Create these two files:
+Create two files:
 
 ```text
 compact-profile/
@@ -51,12 +37,14 @@ compact-profile/
 └── Summary.md.liquid
 ```
 
+`profile.json`:
+
 ```json
 {
-  "$schema": "https://github.com/doruksahin/jira-markdown-exporter/blob/main/schemas/output-profile.schema.json",
+  "$schema": "/absolute/path/to/jira-markdown-exporter/schemas/output-profile.schema.json",
   "id": "compact-v1",
   "schemaVersion": 1,
-  "ownedDirectory": "Jira Snapshot",
+  "ownedDirectory": "jira-snapshot",
   "attachmentsDirectory": "files",
   "files": [
     { "template": "Summary.md.liquid", "output": "Summary.md" }
@@ -64,67 +52,97 @@ compact-profile/
 }
 ```
 
+`Summary.md.liquid`:
+
 ```liquid
 # {{ issue.key }} · {{ issue.summary }}
 
 Attachments: {{ attachments.size }}
 ```
 
-For `ATT-123`, this writes only
-`<output-dir>/ATT-123/Jira Snapshot/Summary.md`. The local-profile regression
-in [`test/core/output-profile.test.ts`](../test/core/output-profile.test.ts)
-uses this exact manifest and output.
+For `PROJ-123`, this writes only:
+
+```text
+<output-dir>/PROJ-123/jira-snapshot/Summary.md
+```
+
+The exporter replaces the complete `jira-snapshot` directory on success. A
+consumer must therefore put only generated files inside `ownedDirectory`.
+
+## Manifest contract
+
+The schema is [`schemas/output-profile.schema.json`](../schemas/output-profile.schema.json).
+
+- `id` is the profile's stable identifier.
+- `schemaVersion` is currently `1`.
+- `ownedDirectory` is one safe directory segment beneath each issue key.
+- `attachmentsDirectory` is one safe directory segment beneath the owned
+  directory.
+- `files` is an ordered, non-empty list of Liquid template paths and Markdown
+  output paths.
+
+Template paths must end in `.liquid`; outputs must end in `.md`. Paths cannot
+be absolute, contain empty or parent segments, collide with another output, or
+equal/sit beneath `attachmentsDirectory`. The selected profile directory and
+its descendants cannot be symlinks. Unknown manifest and file properties are
+rejected.
 
 ## Template model
 
 Liquid templates receive a normalized, credential-free model:
 
-| Object | Available fields | Example |
-| --- | --- | --- |
-| `issue` | `key`, `url`, `summary`, `description`, `updated`, `metadata` | `{{ issue.key }}` renders `ATT-123`. |
-| `comments` | sorted `id`, `author`, `created`, `date`, `updatedNote`, `body` entries | `{% for comment in comments %}`. |
-| `linkedIssues` | sorted `relationship`, `key`, `url`, `summary`, `status`, `issueType`, `assignee` entries | `{% for link in linkedIssues %}`. |
-| `attachments` | sorted `id`, `filename`, `mimeType`, `size`, `author`, `created`, `localPath` entries | `localPath` is empty unless binary downloading succeeds. |
-| `sync` | `attachmentCount`, `downloadedAttachments`, `attachmentDownloadsEnabled`, `warnings` | Use `attachmentDownloadsEnabled` to distinguish intentional metadata-only sync from a requested download failure. |
+| Object | Fields |
+| --- | --- |
+| `issue` | `key`, `url`, `summary`, `description`, `updated`, `metadata` |
+| `comments` | sorted `id`, `author`, `created`, `date`, `updatedNote`, `body` entries |
+| `linkedIssues` | sorted `relationship`, `key`, `url`, `summary`, `status`, `issueType`, `assignee` entries |
+| `attachments` | sorted `id`, `filename`, `mimeType`, `size`, `author`, `created`, `localPath` entries |
+| `sync` | `attachmentCount`, `downloadedAttachments`, `attachmentDownloadsEnabled`, `warnings` |
 
-Attachment `contentUrl` is intentionally absent. A template cannot request a
-new download or observe Jira credentials. Existing media links have already
-been rewritten safely before `issue.description` reaches the template.
+`attachment.localPath` is empty unless its binary was downloaded. The Jira
+attachment content URL is intentionally absent. Existing inline media links
+have already been safely localized before `issue.description` reaches a
+template.
 
-`linkedIssues` contains direct Jira issue-to-issue links only. `relationship`
-is Jira's configured label from the exported issue's perspective, so it may be
-`blocks`, `is blocked by`, `relates to`, or a site-specific link type. The
-exporter does not recursively fetch descriptions, comments, or attachments for
-those linked issues. Jira remote links are also intentionally outside this
-snapshot field.
+Available filters are:
 
-The built-in profile demonstrates a shared notice partial, loops,
-conditionals, and the exporter filters `tableCell`, `formatBytes`, and `yaml`.
+- `tableCell`: escape table separators and line breaks
+- `formatBytes`: format a numeric byte size
+- `yaml`: serialize a safe scalar for frontmatter
 
-## Safety contract
+Liquid includes may reference partials beneath the selected profile directory.
+Remote templates and arbitrary JavaScript helpers are not supported.
 
-Before rendering, the loader rejects empty manifests, unknown schema versions,
-absolute or parent-directory paths, duplicate output files, non-Liquid
-templates, and non-Markdown outputs. It therefore cannot write a manifest entry
-such as `../00 Task.md`; the exact rejection is tested in
-[`test/core/output-profile.test.ts`](../test/core/output-profile.test.ts).
+## Attachments
 
-The profile’s `ownedDirectory` and `attachmentsDirectory` are single safe path
-segments. Output paths may be nested below the owned directory, but never
-escape it. Each issue is still staged and swapped atomically at the owned
-directory boundary.
+When `--download-attachments` is enabled, binaries are stored under
+`attachmentsDirectory` with an attachment-ID prefix. Templates should use
+`attachment.localPath` exactly and should use
+`sync.attachmentDownloadsEnabled` to distinguish disabled downloads from a
+failed requested download.
 
-Profiles are local files, not remote code. Do not add URL-based template
-loading, arbitrary JavaScript helpers, or a broad host/plugin system. If a
-reusable profile becomes useful, version it in a normal Git repository and pass
-its checked-out directory through `--template-dir`.
+```liquid
+{% if attachment.localPath != blank %}
+[open](<{{ attachment.localPath }}>)
+{% elsif sync.attachmentDownloadsEnabled %}
+download failed
+{% else %}
+not downloaded
+{% endif %}
+```
 
-## Maintaining a profile
+## Verify a profile change
 
-1. Start with [`profiles/work-os-v1`](../profiles/work-os-v1).
-2. Add or alter a template and its `profile.json` mapping together.
-3. Add a regression that verifies output and ownership, not a Liquid internals.
-4. Run `pnpm check`; before publication, run `pnpm release:check`.
+Add or update a test that creates a temporary profile, runs the exporter with a
+fake reader, and asserts the exact path and bytes. Also verify that a sibling
+file outside `ownedDirectory` survives a repeated export.
 
-The implementation plan and rationale are in
-[`docs/template-profiles-plan.md`](template-profiles-plan.md).
+```sh
+pnpm check
+```
+
+Before packaging:
+
+```sh
+pnpm release:check
+```

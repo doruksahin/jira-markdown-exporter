@@ -63,6 +63,7 @@ export type ExporterTransportOperation =
   | 'jira-board-sprints'
   | 'jira-board-issues'
   | 'jira-sprint-issues'
+  | 'jira-assigned-issues'
   | 'attachment';
 
 const ERROR_MESSAGES: Readonly<Record<ExporterTransportErrorCode, string>> = Object.freeze({

@@ -1,6 +1,6 @@
 {
   "name": "jira-markdown-exporter",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Read-only Jira issue snapshots as deterministic Markdown packets.",
   "private": true,
   "license": "UNLICENSED",
@@ -33,28 +33,31 @@
   },
   "files": [
     "dist",
-    "profiles",
+    "docs/output-profiles.md",
+    "docs/server-operation.md",
+    "profiles/generic-v1/*.liquid",
+    "profiles/generic-v1/profile.json",
     "schemas",
-    "README.md",
-    "AGENTS.md"
+    "README.md"
   ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm build && vitest run",
+    "test": "pnpm build && vitest run --exclude test/release-artifact.test.ts && vitest run test/release-artifact.test.ts",
     "check": "pnpm typecheck && pnpm test",
     "export": "tsx src/cli/main.ts",
     "prepack": "pnpm build",
-    "release:check": "pnpm check && npm pack --dry-run"
+    "release:artifact": "node scripts/build-release-artifact.mjs",
+    "release:smoke-install": "node scripts/smoke-installed-artifact.mjs",
+    "release:check": "pnpm check && npm pack --dry-run --ignore-scripts"
   },
   "dependencies": {
-    "adf-to-md": "^1.2.1",
     "axios": "^1.19.0",
-    "dotenv": "^17.4.2",
+    "commander": "^14.0.3",
     "jira.js": "^5.3.1",
     "liquidjs": "^10.28.0"
   },

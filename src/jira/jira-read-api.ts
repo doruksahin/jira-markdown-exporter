@@ -110,6 +110,13 @@ export interface JiraReadApi {
     orderByUpdatedDesc: true;
     storyPointsField: string;
   }>): Promise<JiraIssueList>;
+  listAssignedIssues(input: Readonly<{
+    projectKey: string;
+    assigneeAccountId: string;
+    unresolvedOnly: true;
+    orderByUpdatedDesc: true;
+    storyPointsField: string;
+  }>): Promise<JiraIssueList>;
 }
 
 export function createJiraReadApi(
@@ -234,15 +241,23 @@ class JiraTransportReadApi implements JiraReadApi {
   }>): Promise<JiraIssueList> {
     const sprintId = jiraNumericId(input.sprintId, 'sprint');
     const fields = issueFields(input.storyPointsField);
-    const jql = ownershipJql(input.projectKey, input.assigneeAccountId, false, false);
-    return this.issuePages(
+    const assignedIssues = await this.enhancedSearchIssuePages(
       'jira-sprint-issues',
       fields,
       input.storyPointsField,
-      (startAt) => jiraGetJson(this.config, this.transport, 'jira-sprint-issues', `/rest/agile/1.0/sprint/${sprintId}/issue`, {
-        startAt, maxResults: PAGE_SIZE, jql, fields,
-      }) as Promise<AgileModels.SearchResults>,
+      ownershipJql(input.projectKey, input.assigneeAccountId, false, false),
     );
+    const sprintIssues = await this.enhancedSearchIssuePages(
+      'jira-sprint-issues',
+      fields,
+      input.storyPointsField,
+      sprintMembershipJql(input.projectKey, sprintId),
+    );
+    const sprintKeys = new Set(sprintIssues.issues.map((issue) => issue.key));
+    const issues = assignedIssues.issues.filter((issue) => (
+      sprintKeys.has(issue.key) || Boolean(issue.parentKey && sprintKeys.has(issue.parentKey))
+    ));
+    return Object.freeze({ issues: Object.freeze(issues), total: issues.length });
   }
 
   async listBoardIssues(input: Readonly<{
@@ -269,6 +284,21 @@ class JiraTransportReadApi implements JiraReadApi {
     );
   }
 
+  async listAssignedIssues(input: Readonly<{
+    projectKey: string;
+    assigneeAccountId: string;
+    unresolvedOnly: true;
+    orderByUpdatedDesc: true;
+    storyPointsField: string;
+  }>): Promise<JiraIssueList> {
+    if (input.unresolvedOnly !== true || input.orderByUpdatedDesc !== true) {
+      throw new Error('Assigned issue policy must explicitly select unresolved issues ordered by updated descending');
+    }
+    const fields = issueFields(input.storyPointsField);
+    const jql = ownershipJql(input.projectKey, input.assigneeAccountId, true, true);
+    return this.enhancedSearchIssuePages('jira-assigned-issues', fields, input.storyPointsField, jql);
+  }
+
   private async issuePages(
     operation: 'jira-board-issues' | 'jira-sprint-issues',
     fields: readonly string[],
@@ -291,6 +321,36 @@ class JiraTransportReadApi implements JiraReadApi {
       if (issues.length >= total) return Object.freeze({ issues: Object.freeze(issues), total });
       if (!batch.length) throw paginationError(operation);
       startAt += batch.length;
+    }
+    throw paginationError(operation);
+  }
+
+  private async enhancedSearchIssuePages(
+    operation: 'jira-sprint-issues' | 'jira-assigned-issues',
+    fields: readonly string[],
+    storyPointsField: string,
+    jql: string,
+    include: (issue: Version3Models.Issue) => boolean = () => true,
+  ): Promise<JiraIssueList> {
+    const issues: JiraIssueRecord[] = [];
+    const seenTokens = new Set<string>();
+    let nextPageToken: string | undefined;
+    for (let pageNumber = 0; pageNumber < MAX_PAGES; pageNumber += 1) {
+      const page = await jiraGetJson(this.config, this.transport, operation, '/rest/api/3/search/jql', {
+        jql,
+        maxResults: PAGE_SIZE,
+        fields,
+        nextPageToken,
+      }) as { issues?: Version3Models.Issue[]; nextPageToken?: string };
+      const batch = Array.isArray(page.issues) ? page.issues : [];
+      issues.push(...batch
+        .filter((issue) => include(issue))
+        .map((issue) => normalizeIssue(issue, storyPointsField, this.jiraOrigin)));
+      const token = String(page.nextPageToken || '').trim();
+      if (!token) return Object.freeze({ issues: Object.freeze(issues), total: issues.length });
+      if (!batch.length || seenTokens.has(token)) throw paginationError(operation);
+      seenTokens.add(token);
+      nextPageToken = token;
     }
     throw paginationError(operation);
   }
@@ -369,6 +429,10 @@ function ownershipJql(projectKey: string, accountId: string, unresolved: boolean
   return `${clauses.join(' AND ')}${order ? ' ORDER BY updated DESC' : ''}`;
 }
 
+function sprintMembershipJql(projectKey: string, sprintId: number): string {
+  return `project = "${jqlValue(jiraProjectKey(projectKey))}" AND sprint = ${sprintId}`;
+}
+
 function jqlValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
@@ -419,6 +483,8 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function paginationError(operation: 'jira-board-sprints' | 'jira-board-issues' | 'jira-sprint-issues'): ExporterTransportError {
+function paginationError(
+  operation: 'jira-board-sprints' | 'jira-board-issues' | 'jira-sprint-issues' | 'jira-assigned-issues',
+): ExporterTransportError {
   return new ExporterTransportError('JIRA_PAGINATION_INVALID', operation);
 }

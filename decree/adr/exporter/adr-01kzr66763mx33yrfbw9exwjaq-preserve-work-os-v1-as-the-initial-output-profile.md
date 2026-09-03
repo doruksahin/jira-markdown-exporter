@@ -3,7 +3,8 @@ date: '2026-08-11'
 id: ADR-01KZR66763MX33YRFBW9EXWJAQ
 references:
 - PRD-01KZR5W5CNKW62PP98VGPNJTJX
-status: accepted
+status: superseded
+superseded-by: ADR-01M1H1J8YC48HC47TPGVNMFAES
 ---
 
 # ADR-01KZR66763MX33YRFBW9EXWJAQ Preserve Work OS v1 as the initial output profile

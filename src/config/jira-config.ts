@@ -13,8 +13,8 @@ export function loadJiraConfig(env: NodeJS.ProcessEnv = process.env): JiraConfig
   } catch {
     throw new Error('JIRA_HOST must be an absolute URL, for example https://example.atlassian.net');
   }
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error('JIRA_HOST must use http or https');
+  if (parsed.protocol !== 'https:') {
+    throw new Error('JIRA_HOST must use https');
   }
   return { host: parsed.origin, email: required(env, 'JIRA_EMAIL'), apiToken: required(env, 'JIRA_API_TOKEN') };
 }

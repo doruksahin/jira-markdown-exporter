@@ -1,79 +1,63 @@
 # Source Code Guide
 
-Read the root [`AGENTS.md`](../AGENTS.md) first. This file narrows its rules to
-`src/`.
+Read the root `AGENTS.md` first. This file narrows its rules to `src/`.
 
-After a runtime source change, run `pnpm build` to validate the release output.
-Do not commit the generated `../dist/` files; `prepack` creates them for the
-versioned npm archive.
+## Layer ownership
 
-## Layer ownership, with real examples
-
-- `domain/` contains portable values and result types. Example:
-  [`domain/board-snapshot.ts`](domain/board-snapshot.ts) contains a Jira issue
-  *snapshot*, not a Jira API response. `contentUrl` exists so an adapter can
-  download a file, but the writer deliberately never renders it.
-- `ports/` defines provider boundaries. Example:
-  [`ports/board-issue-reader.ts`](ports/board-issue-reader.ts) has only
-  `searchIssueKeys`, `fetchIssue`, and `downloadAttachment`.
-- `jira/` is the Jira-specific adapter. Example:
-  [`jira/jira-read-client.ts`](jira/jira-read-client.ts) is the narrow,
-  read-only `jira.js` facade for typed issue, comment, and enhanced-JQL calls.
-  [`jira/jira-board-issue-reader.ts`](jira/jira-board-issue-reader.ts) requests
-  explicit `ISSUE_FIELDS`, follows enhanced-search page tokens, maps SDK models
-  into the portable snapshot, and fetches all comments. Keep SDK mapping and
-  ADF conversion here. The narrowly scoped
-  [`jira/attachment-url-policy.ts`](jira/attachment-url-policy.ts) separately
-  owns the exact Jira/Atlassian origins permitted for attachment downloads;
-  binary attachment requests deliberately use native `fetch`, not the SDK.
-- `runner/` combines the port and output profile. Example:
-  [`runner/run-export.ts`](runner/run-export.ts) isolates a failure for
-  `ATT-2` instead of discarding a completed `ATT-1` export.
-- `output/` owns generated filesystem layout and profile rendering. Example:
-  [`output/profile-writer.ts`](output/profile-writer.ts) replaces one selected
-  profile directory through a staging directory; it does not touch `00 Task.md`.
-  [`output/work-os-v1-writer.ts`](output/work-os-v1-writer.ts) is a compatibility
-  wrapper selecting the versioned templates in `../profiles/work-os-v1/`.
-- `cli/` translates arguments and exit codes only. Example:
-  [`cli/main.ts`](cli/main.ts) accepts exactly one of `--issue-keys` and
-  `--jql`, then delegates to `runExport`.
-- `board-sync/cli.ts` is a deliberately tiny compatibility wrapper for Obsidian
-  Work OS. Treat it as public surface, even though the implementation lives in
-  `cli/main.ts`.
-
-## Dependency direction
+- `domain/` contains normalized snapshots and result types, never raw Jira
+  responses.
+- `ports/` defines the narrow reader boundary: search issue keys, fetch an
+  issue, and download an attachment.
+- `jira/` contains GET-only Jira adapters, pagination, ADF conversion, and
+  attachment-origin policy.
+- `output/` loads safe profiles, builds a credential-free template model, and
+  atomically replaces one profile-owned directory.
+- `runner/` coordinates selection, fetching, rendering, and per-issue results.
+- `cli/` translates arguments, environment configuration, receipts, and exit
+  codes. It must not contain Jira fetching or rendering logic.
 
 Keep dependencies pointing inward:
 
 ```text
-cli, jira adapter, output → runner/ports/domain
-runner                 → ports/domain/output
-output                 → domain
-domain and ports       → no Jira, CLI, or filesystem adapters
+CLI and adapters -> runner, ports, domain
+runner           -> ports, domain, output
+output           -> domain
+domain, ports    -> no CLI or concrete transport
 ```
 
-For example, if a Markdown field needs a Jira-specific conversion, convert it
-to the string in `jira/adf-to-markdown.ts`, store that string in
-`BoardIssueSnapshot.description`, and let the writer render it. Do not import
-`adf-to-md` into `output/work-os-v1-writer.ts`.
+For a Jira-specific conversion, map the value into `BoardIssueSnapshot` in the
+Jira adapter and render only the normalized value. Do not import Jira SDK types
+into the output layer.
 
-## Changes that need particular care
+## Sensitive boundaries
 
-- Attachment links: `localizeInlineMedia` gives ID references precedence and
-  refuses ambiguous filename-only links. The duplicate `design.png` case in
-  `test/core/work-os-v1-writer.test.ts` is the required reference example.
-- Attachment downloading: a failure becomes a warning in `90 Sync.md`; it is
-  not a reason to corrupt the previous readable snapshot. See the third writer
-  test.
-- Pagination: a repeated Jira enhanced-search token throws rather than looping.
-  See the first adapter test before changing token handling.
-- SDK boundary: add a new Jira JSON read to `JiraReadClient` and
-  `JiraSdkReadClient`, then fake that narrow interface in the adapter test.
-  Do not expose `Version3Client` outside `jira/`, and do not move attachment
-  bytes into its Axios transport.
-- Output profiles: keep `contentUrl` out of `template-model.ts`; it is a
-  download-layer value. Validate new manifest fields in `output-profile.ts`,
-  document them in `docs/output-profiles.md`, and add a profile regression.
-- Public output: Any added receipt property must be reflected in
-  `domain/export-result.ts`, `schemas/export-receipt.schema.json`, CLI tests,
-  and `README.md`.
+- `contentUrl` exists only so the attachment adapter can download bytes. Keep
+  it out of `template-model.ts`, receipts, logs, and generated Markdown.
+- `localizeInlineMedia` gives attachment-ID references precedence and leaves
+  ambiguous filename-only links unchanged.
+- Attachment binary requests must retain exact-origin validation and must not
+  follow an unvalidated redirect.
+- A failed attachment becomes a bounded warning; it must not corrupt an
+  otherwise readable snapshot.
+- A repeated enhanced-search page token must fail instead of looping.
+- New Jira reads belong on the narrow `JiraReadClient` interface. Do not expose
+  the full SDK client outside `jira/`.
+
+## Public-contract changes
+
+Any receipt field change requires coordinated updates to:
+
+- `domain/export-result.ts`
+- `schemas/export-receipt.schema.json`
+- runner and CLI tests
+- `README.md`
+
+Any profile contract change requires coordinated updates to:
+
+- `output/output-profile.ts`
+- `schemas/output-profile.schema.json`
+- `docs/output-profiles.md`
+- focused profile tests
+
+After runtime changes, run `pnpm check`. Do not edit or commit generated
+`dist/`; `prepack` rebuilds it.

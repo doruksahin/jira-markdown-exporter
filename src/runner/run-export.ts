@@ -1,18 +1,19 @@
 import { errorMessage } from '../domain/errors.js';
 import { normalizeIssueKey } from '../domain/board-snapshot.js';
 import type { ExportResult, ExportedIssueResult } from '../domain/export-result.js';
-import { loadOutputProfile } from '../output/output-profile.js';
+import { calculateOutputProfileDigest, loadOutputProfile, validateOutputProfile } from '../output/output-profile.js';
 import { writeOutputProfileSnapshot } from '../output/profile-writer.js';
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 import type { OutputProfile } from '../output/output-profile.js';
 import { exporterTransportFailure } from '../transport.js';
+import { JIRA_MARKDOWN_EXPORTER_VERSION } from '../version.js';
 
 export interface RunExportOptions {
   readonly outputDir: string;
   readonly issueKeys?: readonly string[];
   readonly jql?: string;
   readonly downloadAttachments?: boolean;
-  /** Built-in profile name; defaults to the byte-compatible `work-os-v1`. */
+  /** Built-in profile name; defaults to `generic-v1`. */
   readonly profile?: string;
   /** Explicit local profile directory containing `profile.json` and templates. */
   readonly templateDir?: string;
@@ -25,7 +26,10 @@ export async function runExport(reader: BoardIssueReader, options: RunExportOpti
   if (options.outputProfile && (options.profile || options.templateDir)) {
     throw new Error('Use outputProfile or a filesystem profile selection, not both');
   }
-  const profile = options.outputProfile ?? await loadOutputProfile({ profile: options.profile, templateDir: options.templateDir });
+  const profile = options.outputProfile
+    ? await validateOutputProfile(options.outputProfile)
+    : await loadOutputProfile({ profile: options.profile, templateDir: options.templateDir });
+  const profileDigest = await calculateOutputProfileDigest(profile);
   const keys = await resolveIssueKeys(reader, options);
   const issues: ExportedIssueResult[] = [];
   for (const key of keys) {
@@ -46,11 +50,19 @@ export async function runExport(reader: BoardIssueReader, options: RunExportOpti
   }
   const synced = issues.filter((issue) => issue.status === 'synced').length;
   const failed = issues.length - synced;
-  return { schemaVersion: 1, status: failed === 0 ? 'success' : synced === 0 ? 'failed' : 'partial', total: issues.length, synced, failed, outputDir: options.outputDir, issues };
+  return {
+    schemaVersion: 1,
+    exporterVersion: JIRA_MARKDOWN_EXPORTER_VERSION,
+    profileId: profile.manifest.id,
+    profileDigest,
+    status: failed === 0 ? 'success' : synced === 0 ? 'failed' : 'partial',
+    total: issues.length,
+    synced,
+    failed,
+    outputDir: options.outputDir,
+    issues,
+  };
 }
-
-/** Compatibility alias for the embedded board-sync entrypoint. */
-export const runBoardSync = runExport;
 
 async function resolveIssueKeys(reader: BoardIssueReader, options: RunExportOptions): Promise<readonly string[]> {
   const explicit = options.issueKeys?.map(normalizeIssueKey) ?? [];

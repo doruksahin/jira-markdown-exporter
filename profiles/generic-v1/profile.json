@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schemas/output-profile.schema.json",
+  "id": "generic-v1",
+  "schemaVersion": 1,
+  "ownedDirectory": "jira-snapshot",
+  "attachmentsDirectory": "attachments",
+  "files": [
+    { "template": "issue.md.liquid", "output": "issue.md" },
+    { "template": "comments.md.liquid", "output": "comments.md" },
+    { "template": "attachments.md.liquid", "output": "attachments.md" },
+    { "template": "metadata.md.liquid", "output": "metadata.md" }
+  ]
+}

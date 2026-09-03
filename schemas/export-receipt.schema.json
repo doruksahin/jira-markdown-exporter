@@ -1,11 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/doruk/jira-markdown-exporter/schemas/export-receipt.schema.json",
+  "$id": "https://github.com/doruksahin/jira-markdown-exporter/schemas/export-receipt.schema.json",
   "title": "Jira Markdown Export Receipt",
   "type": "object",
-  "required": ["schemaVersion", "status", "total", "synced", "failed", "outputDir", "issues"],
+  "required": ["schemaVersion", "exporterVersion", "profileId", "profileDigest", "status", "total", "synced", "failed", "outputDir", "issues"],
   "properties": {
     "schemaVersion": { "const": 1 },
+    "exporterVersion": { "type": "string", "minLength": 1 },
+    "profileId": { "type": "string", "minLength": 1 },
+    "profileDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "status": { "enum": ["success", "partial", "failed"] },
     "total": { "type": "integer", "minimum": 0 },
     "synced": { "type": "integer", "minimum": 0 },
