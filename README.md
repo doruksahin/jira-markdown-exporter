@@ -1,6 +1,6 @@
 # Jira Markdown Exporter
 
-`jira-markdown-exporter` is a standalone, read-only Jira Cloud exporter. It
+`@doruksahin/jira-markdown-exporter` is a standalone, read-only Jira Cloud exporter. It
 selects issues by key or JQL, normalizes Jira data, and renders deterministic
 Markdown through a caller-selected output profile.
 
@@ -35,13 +35,41 @@ jira-markdown-export --help
 The generated plain-text help is the self-contained interface reference for
 both unattended operators and language models. It includes every option, the
 three required environment variables, selector exclusivity, receipt and output
-semantics, exit statuses, and copyable examples. When running directly from a
-source checkout, use `node dist/cli/main.js --help`.
+semantics, exit statuses, and copyable examples.
+
+## Install
+
+For a repository or GitHub Actions job, install an exact version as a local
+development dependency and commit both the manifest and lockfile:
+
+```sh
+pnpm add --save-dev --save-exact @doruksahin/jira-markdown-exporter@X.Y.Z
+pnpm exec jira-markdown-export --help
+```
+
+Replace `X.Y.Z` with a version that exists on npm. Do not use `latest`, `^`, or
+`~` in unattended jobs. The committed lockfile fixes the resolved dependency
+graph, while the exact direct dependency makes exporter upgrades explicit in
+code review.
+
+For a one-off, non-locked invocation, npm can download and run one exact
+version without a global installation:
+
+```sh
+npm exec --yes \
+  --package=@doruksahin/jira-markdown-exporter@X.Y.Z \
+  -- jira-markdown-export --help
+```
+
+Confirm the requested version is visible on npm before using the registry
+commands. If its first public publication is not complete, install the
+checksummed `.tgz` from its GitHub Release or run a pinned source checkout. See
+[Stateless server operation](docs/server-operation.md) for both procedures.
 
 ## Run from source
 
-The package is not published to npm yet, so a pinned source checkout is the
-stable installation path.
+A pinned source checkout is useful for development and for independently
+rebuilding a release:
 
 ```sh
 git clone https://github.com/doruksahin/jira-markdown-exporter.git
@@ -287,17 +315,16 @@ runtime dependencies that `npm install` resolves. A pinned source commit plus
 `pnpm-lock.yaml` and `pnpm install --frozen-lockfile` remains the reproducible
 build path. See [Stateless server operation](docs/server-operation.md) for the
 separate, network-dependent installed-package smoke.
-The package remains intentionally blocked from npm publication by
-`private: true` and `UNLICENSED`; choosing a license and publication authority
-is a separate release decision.
 
 ## GitHub releases
 
 Release Please owns version bumps, `CHANGELOG.md`, `vX.Y.Z` tags, and GitHub
-Releases. Each release contains the versioned `.tgz` package and
-`SHA256SUMS`. Changes reach a release through a normal Conventional Commit PR
-followed by the generated `chore(main): release X.Y.Z` PR; neither version
-files nor tags are created manually.
+Releases. The release workflow builds and verifies one `.tgz`; that exact file
+is the payload for both the GitHub Release and npm publication. Changes reach a
+release through a normal Conventional Commit PR followed by the generated
+`chore(main): release X.Y.Z` PR; neither version files nor tags are created
+manually.
 
-See [the release playbook](docs/releasing.md) for the exact merge, verification,
-artifact-download, checksum, installation, and recovery commands.
+See [the release playbook](https://github.com/doruksahin/jira-markdown-exporter/blob/main/docs/releasing.md)
+for the exact merge, verification, artifact-download, checksum, installation,
+and recovery commands.

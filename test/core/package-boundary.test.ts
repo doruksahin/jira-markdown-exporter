@@ -20,17 +20,56 @@ describe('consumer-neutral package boundary', () => {
 
   it('ships only the generic built-in profile and no retired compatibility build output', async () => {
     const manifest = JSON.parse(await readFile(join(repositoryRoot, 'package.json'), 'utf8')) as { files: string[] };
-    expect(manifest.files).toContain('profiles/generic-v1/*.liquid');
-    expect(manifest.files).toContain('profiles/generic-v1/profile.json');
-    expect(manifest.files).not.toContain('profiles');
+    expect(manifest.files).toEqual([
+      'dist',
+      'docs/output-profiles.md',
+      'docs/server-operation.md',
+      'profiles/generic-v1/*.liquid',
+      'profiles/generic-v1/profile.json',
+      'schemas',
+      'README.md',
+    ]);
     await expect(lstat(join(repositoryRoot, 'dist', 'board-sync'))).rejects.toMatchObject({ code: 'ENOENT' });
     await expect(lstat(join(repositoryRoot, 'dist', 'output', 'work-os-v1-writer.js'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
+  it('publishes the scoped MIT package while retaining the stable CLI command', async () => {
+    const manifest = JSON.parse(await readFile(join(repositoryRoot, 'package.json'), 'utf8')) as {
+      name: string;
+      private?: boolean;
+      license: string;
+      bin: Record<string, string>;
+      publishConfig: { access: string; registry: string };
+    };
+
+    expect(manifest.name).toBe('@doruksahin/jira-markdown-exporter');
+    expect(manifest.private).toBeUndefined();
+    expect(manifest.license).toBe('MIT');
+    expect(manifest.bin).toEqual({
+      'jira-markdown-export': 'dist/cli/main.js',
+    });
+    expect(manifest.publishConfig).toEqual({
+      access: 'public',
+      registry: 'https://registry.npmjs.org',
+    });
+  });
+
   it('keeps package and runtime versions aligned', async () => {
     const manifest = JSON.parse(await readFile(join(repositoryRoot, 'package.json'), 'utf8')) as { version: string };
-    expect(manifest.version).toBe('0.3.0');
+    const releasePlease = JSON.parse(
+      await readFile(join(repositoryRoot, 'release-please-config.json'), 'utf8'),
+    ) as {
+      packages: Record<string, { 'extra-files': Array<{ type: string; path: string }> }>;
+    };
+    const versionSource = await readFile(join(repositoryRoot, 'src', 'version.ts'), 'utf8');
+
+    expect(manifest.version).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
     expect(JIRA_MARKDOWN_EXPORTER_VERSION).toBe(manifest.version);
+    expect(releasePlease.packages['.']?.['extra-files']).toContainEqual({
+      type: 'generic',
+      path: 'src/version.ts',
+    });
+    expect(versionSource).toContain('x-release-please-version');
   });
 });
 

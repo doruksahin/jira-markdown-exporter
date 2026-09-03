@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, '..');
 const artifactScript = join(repositoryRoot, 'scripts', 'build-release-artifact.mjs');
+const smokeScript = join(repositoryRoot, 'scripts', 'smoke-installed-artifact.mjs');
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -45,7 +46,7 @@ describe('release artifact command', () => {
     const packageJson = JSON.parse(
       await readFile(join(repositoryRoot, 'package.json'), 'utf8'),
     ) as { name: string; version: string };
-    const archiveName = `${packageJson.name}-${packageJson.version}.tgz`;
+    const archiveName = `${packageJson.name.replace(/^@/, '').replaceAll('/', '-')}-${packageJson.version}.tgz`;
     const firstArchive = await readFile(join(firstOutput, archiveName));
     const secondArchive = await readFile(join(secondOutput, archiveName));
     const expectedDigest = createHash('sha256').update(firstArchive).digest('hex');
@@ -60,7 +61,26 @@ describe('release artifact command', () => {
     expect(first.stdout).toContain(archiveName);
     expect(second.stdout).toContain(expectedDigest);
 
-  }, 60_000);
+    const smoke = await execFileAsync(process.execPath, [
+      smokeScript,
+      join(firstOutput, archiveName),
+    ], {
+      cwd: repositoryRoot,
+      env: process.env,
+    });
+    expect(smoke.stdout).toContain('Installed package smoke passed');
+
+    const listing = await execFileAsync('tar', [
+      '-tzf',
+      join(firstOutput, archiveName),
+    ]);
+    const packagedPaths = listing.stdout.trim().split('\n');
+    expect(packagedPaths).toContain('package/LICENSE');
+    expect(packagedPaths).toContain('package/dist/cli/main.js');
+    expect(packagedPaths).not.toContain('package/scripts/build-release-artifact.mjs');
+    expect(packagedPaths.some((path) => path.startsWith('package/test/'))).toBe(false);
+
+  }, 120_000);
 
   it('refuses to write into a non-empty output directory', async () => {
     const root = await temporaryRoot();

@@ -1,9 +1,8 @@
 {
-  "name": "jira-markdown-exporter",
+  "name": "@doruksahin/jira-markdown-exporter",
   "version": "0.3.0",
   "description": "Read-only Jira issue snapshots as deterministic Markdown packets.",
-  "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {

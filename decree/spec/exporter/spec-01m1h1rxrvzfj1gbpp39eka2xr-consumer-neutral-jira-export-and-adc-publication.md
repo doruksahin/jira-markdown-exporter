@@ -4,6 +4,7 @@ governs:
 - .github/
 - .release-please-manifest.json
 - AGENTS.md
+- LICENSE
 - PROJECT.md
 - README.md
 - docs/
@@ -99,10 +100,26 @@ GitHub delivery follows the same reviewed two-PR rail as the other maintained
 packages. CI runs the complete release check on ordinary pull requests.
 Release Please manifest mode reads Conventional Commits on `main`, owns the
 package version, changelog, manifest, `vX.Y.Z` tag, and GitHub Release. After a
-release is created, the workflow rebuilds the tested npm-compatible tarball,
-verifies its checksum, and attaches both the tarball and `SHA256SUMS` to that
-release. npm publication remains disabled until licensing and publication are
-decided separately.
+release is created, the workflow builds one npm-compatible tarball, runs the
+release gate and installed-package smoke against it, verifies its checksum,
+and attaches that exact tarball and `SHA256SUMS` to the GitHub Release.
+
+The stable machine-distribution channel is the public scoped npm package
+`@doruksahin/jira-markdown-exporter`; its executable remains
+`jira-markdown-export`. The package uses the MIT license. The release workflow
+publishes the exact verified tarball attached to GitHub rather than packing a
+second artifact from the checkout. npm authentication uses Trusted Publishing
+with GitHub OIDC and no long-lived npm write token. Release Please retains its
+separate GitHub token and remains the sole owner of versions and tags.
+
+Consumer repositories install an exact package version as a local development
+dependency and commit their package-manager lockfile. Their workflows run the
+binary through the package manager, inject Jira credentials only into the
+export step, own JQL and optional output profiles, and write output and the
+receipt beneath a unique runner-temporary directory. A global installation is
+documented only as a human convenience; Docker images, compiled executables,
+Homebrew, a custom GitHub Action, a reusable workflow, and additional package
+registries remain out of scope until a demonstrated consumer need appears.
 
 ## Testing Strategy
 
@@ -176,6 +193,22 @@ publication composition without committing its output.
 - [x] The first release through this rail is merged and verified end to end:
   release PR, version, tag, GitHub Release, package archive, checksum, and
   installed CLI help.
+- [x] The package is renamed to `@doruksahin/jira-markdown-exporter`, remains
+  executable as `jira-markdown-export`, and publishes only its reviewed
+  runtime allowlist under the MIT license.
+- [ ] A created release builds one tarball, verifies its checksum and installed
+  CLI, attaches it to GitHub, and publishes that exact tarball to npm through
+  GitHub OIDC without a long-lived npm write token.
+- [ ] Release Please version, tag, changelog, GitHub Release, tarball filename,
+  runtime version, and npm package version remain one coherent release
+  identity.
+- [x] README and release/server playbooks contain copy-paste exact-version
+  installation and execution instructions for local projects, one-off use,
+  isolated servers, and GitHub Actions, including secret and lockfile policy.
+- [x] Package-boundary and release-artifact tests cover the scoped package name,
+  MIT license, expected archive filename, package contents, and installed
+  executable, and `pnpm check`, `pnpm release:check`, Decree lint, and
+  `git diff --check` pass.
 - [ ] A manual read-only GitHub Actions smoke run completes, validates changed
   paths, keeps raw diagnostics only on the ephemeral runner, and neither
   uploads, commits, nor publishes generated Jira content.
