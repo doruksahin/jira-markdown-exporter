@@ -232,6 +232,33 @@ A failed issue includes an error string and may also include a structured
 bounded; filenames, warnings, and unclassified error strings can originate
 from Jira or the local runtime.
 
+Library consumers can validate unknown JSON with the same schemas used by the
+exporter instead of maintaining a second receipt or manifest decoder:
+
+```ts
+import {
+  calculateOutputProfileDigest,
+  parseExportReceipt,
+  parseOutputProfileManifest,
+} from '@doruksahin/jira-markdown-exporter/embedded';
+
+const manifest = parseOutputProfileManifest(JSON.parse(profileJson));
+const profile = { manifest, templates };
+const expectedDigest = await calculateOutputProfileDigest(profile);
+const receipt = parseExportReceipt(JSON.parse(receiptJson));
+
+if (receipt.profileId !== manifest.id || receipt.profileDigest !== expectedDigest) {
+  throw new Error('Export receipt does not match the selected output profile');
+}
+```
+
+The parse functions perform structural validation against the published JSON
+Schemas. Consumers remain responsible for cross-document policy such as the
+expected exporter version, profile identity, digest, issue selection, and
+allowed publication destination. The digest helper validates the complete
+profile and hashes its normalized manifest and template content using the same
+implementation as the exporter.
+
 Treat the complete receipt as potentially sensitive operational output. Keep it
 in local or runner-temporary storage, do not publish it by default, and sanitize
 it before sharing. Credentials and attachment content URLs are not intentional

@@ -87,6 +87,13 @@ equal/sit beneath `attachmentsDirectory`. The selected profile directory and
 its descendants cannot be symlinks. Unknown manifest and file properties are
 rejected.
 
+Library callers can validate an unknown manifest with
+`parseOutputProfileManifest(value)` and calculate its exact exporter digest
+with `calculateOutputProfileDigest({ manifest, templates })`. Both functions
+are exported from the package root and `/embedded` entrypoint. This keeps the
+published JSON Schema and exporter digest implementation authoritative for
+downstream receipt verification.
+
 ## Template model
 
 Liquid templates receive a normalized, credential-free model:

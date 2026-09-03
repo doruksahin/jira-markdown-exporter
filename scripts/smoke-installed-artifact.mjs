@@ -1,7 +1,9 @@
 import { execFile } from 'node:child_process';
 import { lstat, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -47,6 +49,37 @@ async function main() {
     });
     if (!stdout.includes('Usage:')) {
       throw new Error('Installed jira-markdown-export did not print help');
+    }
+
+    const resolveFromConsumer = createRequire(join(smokeRoot, 'consumer.mjs'));
+    const installedModule = await import(pathToFileURL(
+      resolveFromConsumer.resolve('@doruksahin/jira-markdown-exporter/embedded'),
+    ).href);
+    const manifest = installedModule.parseOutputProfileManifest({
+      id: 'smoke-v1',
+      schemaVersion: 1,
+      ownedDirectory: 'snapshot',
+      attachmentsDirectory: 'attachments',
+      files: [{ template: 'issue.md.liquid', output: 'issue.md' }],
+    });
+    const digest = await installedModule.calculateOutputProfileDigest({
+      manifest,
+      templates: { 'issue.md.liquid': '# {{ issue.key }}\n' },
+    });
+    const receipt = installedModule.parseExportReceipt({
+      schemaVersion: 1,
+      exporterVersion: 'smoke',
+      profileId: manifest.id,
+      profileDigest: digest,
+      status: 'success',
+      total: 0,
+      synced: 0,
+      failed: 0,
+      outputDir: '/tmp/export',
+      issues: [],
+    });
+    if (receipt.profileDigest !== digest) {
+      throw new Error('Installed package contract helpers did not agree');
     }
     process.stdout.write(`Installed package smoke passed: ${archive}\n`);
   } finally {
