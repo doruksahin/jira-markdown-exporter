@@ -82,6 +82,10 @@ describe('release publication retry safety', () => {
     expect(workflow).not.toContain('--clobber');
     expect(workflow).toContain('npm install --global npm@11.12.1');
     expect(workflow).toContain(
+      'node "$GITHUB_WORKSPACE/scripts/smoke-installed-artifact.mjs"',
+    );
+    expect(workflow).not.toContain('pnpm --dir "$GITHUB_WORKSPACE"');
+    expect(workflow).toContain(
       "github.event_name != 'workflow_dispatch' || inputs.publish_tag == ''",
     );
     expect(publishJob).toContain('id-token: write');
