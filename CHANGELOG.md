@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.4.1...v0.5.0) (2026-09-03)
+
+
+### Features
+
+* expose schema-backed contract parsers ([#9](https://github.com/doruksahin/jira-markdown-exporter/issues/9)) ([b8cbfe5](https://github.com/doruksahin/jira-markdown-exporter/commit/b8cbfe5df7b4cec58461dc91d7e104345ab90fb4))
+
 ## [0.4.1](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.4.0...v0.4.1) (2026-09-03)
 
 
