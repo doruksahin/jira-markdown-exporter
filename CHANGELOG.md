@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.4.0...v0.4.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **release:** run installed smoke without pnpm ([d6b7fec](https://github.com/doruksahin/jira-markdown-exporter/commit/d6b7fecc84f030a1b61b4647e3a87674d338595a))
+
 ## [0.4.0](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.3.0...v0.4.0) (2026-09-03)
 
 
