@@ -21,6 +21,11 @@ disabled: releases distribute a checksummed npm-compatible package archive.
 Do not manually edit the package version, changelog, release manifest, or tag.
 Merging the generated release PR is the explicit publication decision.
 
+The one-time `v0.2.5` bootstrap tag anchors the package version that existed
+before this release rail. It points to the configured bootstrap commit so the
+first generated changelog comparison is valid. It is not a precedent for
+creating future release tags manually.
+
 ## Required repository secret
 
 `RELEASE_PLEASE_TOKEN` must be able to create pull requests, push release
@@ -58,6 +63,9 @@ npm install --ignore-scripts --no-audit --no-fund \
 
 The release is complete only when the tag exists, both assets are present, the
 checksum passes, and the installed CLI prints its complete help contract.
+
+The first end-to-end release through this rail is
+[`v0.3.0`](https://github.com/doruksahin/jira-markdown-exporter/releases/tag/v0.3.0).
 
 ## Recovery
 
