@@ -16,9 +16,198 @@ It does not keep a database, cache, selected board, selected person, scheduler,
 or previous-run state. The runner owns scheduling, retries, retention, and any
 publication of the generated tree.
 
-## Build a checksummed package artifact
+## Choose an installation model
 
-From a clean, reviewed commit:
+### Consumer repository and CI: exact local dependency
+
+This is the preferred model. The consuming repository owns the selected
+version and its complete resolved dependency graph:
+
+```sh
+pnpm add --save-dev --save-exact @doruksahin/jira-markdown-exporter@X.Y.Z
+git add package.json pnpm-lock.yaml
+pnpm exec jira-markdown-export --help
+```
+
+Replace `X.Y.Z` with an npm-published version. Commit the manifest and lockfile,
+install with `pnpm install --frozen-lockfile` in CI, and invoke the local binary
+with `pnpm exec`. Do not use a floating tag or version range for unattended
+exports.
+
+For a one-off job where creating a lockfile is intentionally unnecessary:
+
+```sh
+npm exec --yes \
+  --package=@doruksahin/jira-markdown-exporter@X.Y.Z \
+  -- jira-markdown-export --help
+```
+
+This pins the direct version but resolves and downloads dependencies for that
+invocation; it is not a replacement for a committed consumer lockfile.
+
+### Standalone server: isolated prefix
+
+A server without a consumer checkout can install one exact version into a
+dedicated, replaceable directory instead of changing the machine-wide Node
+installation:
+
+```sh
+exporter_version=X.Y.Z
+install_root="/opt/jira-markdown-export/$exporter_version"
+
+npm install \
+  --ignore-scripts \
+  --no-audit \
+  --no-fund \
+  --package-lock=false \
+  --prefix "$install_root" \
+  --@doruksahin:registry=https://registry.npmjs.org \
+  "@doruksahin/jira-markdown-exporter@$exporter_version"
+
+"$install_root/node_modules/.bin/jira-markdown-export" --help
+```
+
+Provision `/opt/jira-markdown-export` with the service account's normal file
+permissions. Keep each version in its own prefix, point the scheduler at the
+explicit binary path, and roll back by restoring the previous explicit path.
+The exporter itself remains a one-shot process; the service manager owns its
+schedule, timeout, credentials, and work directory.
+
+A global install is acceptable only as a human convenience on a workstation:
+
+```sh
+npm install --global @doruksahin/jira-markdown-exporter@X.Y.Z
+jira-markdown-export --help
+```
+
+Do not make CI or a production scheduler depend on whichever global version
+happens to be on `PATH`.
+
+If npm unexpectedly looks for the scoped package in a company registry, first
+inspect the effective setting:
+
+```sh
+npm config get @doruksahin:registry
+```
+
+Then override only this install when public npm is the intended source:
+
+```sh
+npm install \
+  --@doruksahin:registry=https://registry.npmjs.org \
+  --save-dev \
+  --save-exact \
+  @doruksahin/jira-markdown-exporter@X.Y.Z
+```
+
+Do not silently change an organization-wide registry configuration; keep the
+explicit override in the consumer environment when that routing is required.
+
+### GitHub Release tarball
+
+Before the first npm publication, or when validating the release payload,
+download the exact GitHub Release archive and checksum:
+
+```sh
+release_version=X.Y.Z
+artifact_dir="$(mktemp -d)"
+
+gh release download "v$release_version" \
+  --repo doruksahin/jira-markdown-exporter \
+  --dir "$artifact_dir"
+
+cd "$artifact_dir"
+sha256sum --check SHA256SUMS
+
+install_root="$(mktemp -d)"
+npm install \
+  --ignore-scripts \
+  --no-audit \
+  --no-fund \
+  --package-lock=false \
+  --prefix "$install_root" \
+  "$artifact_dir/doruksahin-jira-markdown-exporter-$release_version.tgz"
+"$install_root/node_modules/.bin/jira-markdown-export" --help
+```
+
+On macOS, use `shasum --algorithm 256 --check SHA256SUMS`. The checksum fixes
+the package payload, but installation still resolves its declared runtime
+dependencies from npm. The `.tgz` is therefore not a dependency-vendored
+standalone executable.
+
+## GitHub Actions consumer
+
+The consumer repository owns its JQL, optional profile, exporter dependency,
+and lockfile. After adding the exact dependency as shown above, a minimal job is:
+
+```yaml
+name: Export Jira
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1-5"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out consumer inputs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+
+      - name: Install the locked toolchain
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Export Jira into runner-temporary storage
+        env:
+          JIRA_HOST: ${{ secrets.JIRA_HOST }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: |
+          pnpm exec jira-markdown-export \
+            --jql-file ./jira/scope.jql \
+            --template-dir ./jira/profile \
+            --output-dir "$RUNNER_TEMP/jira-artifact" \
+            --receipt "$RUNNER_TEMP/export-receipt.json"
+
+      - name: Upload successful export
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jira-export
+          path: |
+            ${{ runner.temp }}/jira-artifact
+            ${{ runner.temp }}/export-receipt.json
+          if-no-files-found: error
+```
+
+Create `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` as GitHub Actions
+secrets. Keep `jira/scope.jql` and `jira/profile/` in the consumer repository;
+they express consumer policy and presentation, not exporter configuration. If
+the built-in `generic-v1` profile is sufficient, remove `--template-dir`.
+
+The example uploads only after exit `0`. A consumer that accepts exit `2` must
+add an explicit partial-result step that validates the receipt and selects only
+`synced` issue entries before publication. Runner-temporary output is discarded
+after the job unless a later step deliberately uploads or publishes it. A
+receipt can contain Jira-derived filenames, warnings, and error text; apply the
+repository's artifact access and retention policy, or omit or sanitize the
+receipt before broader sharing.
+
+## Build and inspect a release artifact
+
+Maintainers can reproduce the checksummed package from a clean, reviewed
+checkout:
 
 ```sh
 corepack enable
@@ -26,80 +215,15 @@ pnpm install --frozen-lockfile
 pnpm release:check
 artifact_dir="$(mktemp -d)/release"
 pnpm release:artifact "$artifact_dir"
-ls -l "$artifact_dir"
+pnpm release:smoke-install "$artifact_dir"/doruksahin-jira-markdown-exporter-*.tgz
 ```
 
-The command creates exactly these files in a new or empty directory:
-
-```text
-release/
-├── jira-markdown-exporter-<version>.tgz
-└── SHA256SUMS
-```
-
-It runs `pnpm build` and then creates the npm-compatible archive with `npm
-pack`. It never publishes to a package registry, and it refuses a file,
-symlink, repository root, filesystem root, or non-empty directory as its
-destination. It assembles the archive in a temporary staging directory and
-only then copies the archive and checksum into the requested destination.
-
-Verify the artifact before installation. On Linux:
-
-```sh
-cd "$artifact_dir"
-sha256sum --check SHA256SUMS
-```
-
-On macOS:
-
-```sh
-cd "$artifact_dir"
-shasum --algorithm 256 --check SHA256SUMS
-```
-
-Store the `.tgz`, `SHA256SUMS`, source commit SHA, and required Node major
-version together in the release system. The checksum identifies the exact
-package payload, but the archive does not vendor or lock its runtime
-dependencies. `npm install` resolves those declared dependency ranges from the
-configured registry.
-
-The reproducible build path is the pinned source commit with the tracked
-`pnpm-lock.yaml`:
-
-```sh
-git checkout --detach <reviewed-40-character-commit-sha>
-corepack enable
-pnpm install --frozen-lockfile
-pnpm check
-node dist/cli/main.js --help
-```
-
-Use the package artifact when a registry-resolved installation is acceptable
-and verify its checksum first. Do not describe the `.tgz` alone as a fully
-locked or standalone executable.
-
-For an isolated installation on a runner:
-
-```sh
-install_root="$(mktemp -d)"
-npm install --ignore-scripts --prefix "$install_root" \
-  "$artifact_dir/jira-markdown-exporter-<version>.tgz"
-export PATH="$install_root/node_modules/.bin:$PATH"
-jira-markdown-export --help
-```
-
-The installed-package smoke intentionally has the same network dependency as
-that installation because npm must resolve runtime dependencies:
-
-```sh
-pnpm release:smoke-install \
-  "$artifact_dir/jira-markdown-exporter-<version>.tgz"
-```
-
-It installs into a temporary prefix with lifecycle scripts disabled, invokes
-the installed `jira-markdown-export --help`, and removes the temporary prefix.
-Keep this explicit release smoke separate from `pnpm check`, which remains
-self-contained after the repository dependencies have been installed.
+`release:artifact` accepts only a new or empty real directory, builds the
+package, and creates the versioned `.tgz` plus `SHA256SUMS`. The smoke installs
+that archive with lifecycle scripts disabled and invokes its
+`jira-markdown-export --help`. The release workflow sends this one verified
+archive to both GitHub Releases and npm; it must not rebuild separately for
+either destination.
 
 ## Prepare inputs
 
@@ -137,11 +261,22 @@ cp /read-only-inputs/scope.jql "$run_root/scope.jql"
 
 ## Run one export
 
+Choose the explicit installed binary. In a consumer checkout:
+
+```sh
+exporter_bin="$PWD/node_modules/.bin/jira-markdown-export"
+test -x "$exporter_bin"
+```
+
+For the isolated server installation, set `exporter_bin` to
+`/opt/jira-markdown-export/X.Y.Z/node_modules/.bin/jira-markdown-export`
+instead. The scheduled command should not depend on a mutable global `PATH`.
+
 ```sh
 if JIRA_HOST="$JIRA_HOST" \
   JIRA_EMAIL="$JIRA_EMAIL" \
   JIRA_API_TOKEN="$JIRA_API_TOKEN" \
-  jira-markdown-export \
+  "$exporter_bin" \
     --jql-file "$run_root/scope.jql" \
     --template-dir /read-only-inputs/profile \
     --output-dir "$run_root/output" \
@@ -185,7 +320,7 @@ for runner diagnostics. Existing callers can continue to request the same JSON
 receipt on stdout:
 
 ```sh
-jira-markdown-export \
+"$exporter_bin" \
   --jql-file "$run_root/scope.jql" \
   --output-dir "$run_root/output" \
   --json > "$run_root/export-receipt.json"
@@ -204,8 +339,8 @@ first="$(mktemp -d)/first"
 second="$(mktemp -d)/second"
 pnpm release:artifact "$first"
 pnpm release:artifact "$second"
-cmp "$first"/jira-markdown-exporter-*.tgz \
-    "$second"/jira-markdown-exporter-*.tgz
+cmp "$first"/doruksahin-jira-markdown-exporter-*.tgz \
+    "$second"/doruksahin-jira-markdown-exporter-*.tgz
 diff -u "$first/SHA256SUMS" "$second/SHA256SUMS"
 ```
 

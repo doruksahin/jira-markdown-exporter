@@ -30,10 +30,22 @@ build, test, package, and release without access to a consumer repository.
 
 ## Distribution
 
-GitHub is the source repository. The intended stable installation channel is
-the versioned npm package and its `jira-markdown-export` binary. Publication is
-currently blocked by `private: true` and `UNLICENSED` until license and release
-authority are explicitly decided.
+GitHub is the source repository and release record. The stable machine
+installation channel is the public, scoped npm package
+`@doruksahin/jira-markdown-exporter`; its executable remains
+`jira-markdown-export`.
+
+Consumer repositories install an exact local development dependency and commit
+their lockfile. Servers that do not have a consumer checkout install the exact
+package into a dedicated prefix. A global installation is only a convenience
+for a human-operated machine, not the CI or production contract.
+
+Release Please owns versions, tags, and GitHub Releases. A release job builds
+and verifies one npm-compatible `.tgz`, then uses that same byte-for-byte file
+as both the GitHub Release asset and npm publication payload. npm publication
+uses GitHub Actions OIDC after the one-time package bootstrap and trusted
+publisher configuration. The repository must not claim a version is available
+from npm until the registry confirms it.
 
 ## Secrets
 

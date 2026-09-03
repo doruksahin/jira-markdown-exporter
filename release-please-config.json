@@ -4,10 +4,16 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "jira-markdown-exporter",
+      "package-name": "@doruksahin/jira-markdown-exporter",
       "include-v-in-tag": true,
       "include-component-in-tag": false,
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "src/version.ts"
+        }
+      ]
     }
   }
 }
