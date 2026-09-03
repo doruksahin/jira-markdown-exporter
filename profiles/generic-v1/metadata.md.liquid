@@ -1,0 +1,12 @@
+# {{ issue.key }} export metadata
+
+- Jira updated: {{ issue.updated | default: '—' }}
+- Comments: {{ comments.size }}
+- Attachments: {{ sync.attachmentCount }}
+- Downloaded attachments: {{ sync.downloadedAttachments }}
+
+## Warnings
+
+{% if sync.warnings.size > 0 %}{% for warning in sync.warnings %}- {{ warning }}
+{% endfor %}{% else %}- None.
+{% endif %}

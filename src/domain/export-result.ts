@@ -25,6 +25,9 @@ export interface ExportedIssueResult {
 /** Public receipt returned by the runner and serialized by the CLI. */
 export interface ExportResult {
   readonly schemaVersion: 1;
+  readonly exporterVersion: string;
+  readonly profileId: string;
+  readonly profileDigest: `sha256:${string}`;
   readonly status: ExportStatus;
   readonly total: number;
   readonly synced: number;

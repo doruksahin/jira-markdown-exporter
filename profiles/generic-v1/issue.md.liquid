@@ -1,0 +1,16 @@
+# {{ issue.key }}: {{ issue.summary }}
+
+{% if issue.description != blank %}{{ issue.description }}{% else %}_No description._{% endif %}
+
+## Details
+
+| Field | Value |
+| --- | --- |
+{% for field in issue.metadata %}| {{ field.name }} | {{ field.value | tableCell }} |
+{% endfor %}
+## Linked issues
+
+{% if linkedIssues.size > 0 %}| Relationship | Issue | Summary | Status | Type | Assignee |
+| --- | --- | --- | --- | --- | --- |
+{% for link in linkedIssues %}| {{ link.relationship | tableCell }} | [{{ link.key }}](<{{ link.url }}>) | {{ link.summary | tableCell }} | {{ link.status | tableCell }} | {{ link.issueType | tableCell }} | {{ link.assignee | tableCell }} |
+{% endfor %}{% else %}_No linked issues._{% endif %}

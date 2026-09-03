@@ -1,252 +1,303 @@
 # Jira Markdown Exporter
 
-Standalone, read-only Jira issue snapshot exporter.
+`jira-markdown-exporter` is a standalone, read-only Jira Cloud exporter. It
+selects issues by key or JQL, normalizes Jira data, and renders deterministic
+Markdown through a caller-selected output profile.
 
-This repository is the reusable extraction of the Jira → Obsidian board-sync
-flow. It provides a small CLI and a versioned contract for exporting selected
-Jira issues into deterministic Markdown packets.
+The package has no knowledge of a consuming repository. A profile chooses the
+generated directory and Markdown filenames; the exporter owns only that
+directory beneath each issue key.
 
-The implementation boundary, output layout, JSON receipt, tests, and consumer
-migration sequence are defined in [the extraction plan](docs/extraction-plan.md).
-The local-capsule and live-consumer boundary is recorded in
-[PROJECT.md](PROJECT.md).
+## Requirements
 
-## Repository map: follow a concrete example
+- Node.js 20 or newer
+- pnpm 10 when running from source
+- A Jira Cloud account with read access and an API token
+- A local output-profile directory, or the built-in `generic-v1` profile
 
-Read the following files in order before changing behavior. They are linked to
-the same executable examples rather than describing an aspirational design.
-
-| Concern | Source of truth | Concrete example to preserve |
-| --- | --- | --- |
-| Consumer and filesystem ownership | [AGENTS.md](AGENTS.md) and [PROJECT.md](PROJECT.md) | Refreshing `ATT-123` replaces only `ATT-123/40 Jira/`, while its human-owned `00 Task.md` survives. |
-| Public commands and exit codes | [src/cli/main.ts](src/cli/main.ts), [CLI tests](test/jira/cli.test.ts), and [receipt schema](schemas/export-receipt.schema.json) | `--issue-keys ATT-1,ATT-2` and `--jql` are mutually exclusive; JSON mode ends with the versioned receipt. |
-| Library and Obsidian compatibility | [src/index.ts](src/index.ts), [library test](test/core/library.test.ts), and [src/board-sync/cli.ts](src/board-sync/cli.ts) | Work OS bundles the typed library and canonical profile; the compatibility CLI delegates to the same implementation. |
-| Fetching boundary | [snapshot DTO](src/domain/board-snapshot.ts), [reader port](src/ports/board-issue-reader.ts), and [Jira adapter](src/jira/jira-board-issue-reader.ts) | A provider returns `BoardIssueSnapshot`; the writer never imports Jira response types. |
-| Partial results | [runner](src/runner/run-export.ts) and [runner regression](test/core/run-export.test.ts) | If `ATT-1` succeeds and `ATT-2` fails, keep `ATT-1` on disk and return a `partial` receipt. |
-| Markdown layout and attachments | [work-os-v1 writer](src/output/work-os-v1-writer.ts) and [writer regression](test/core/work-os-v1-writer.test.ts) | Attachment IDs `20` and `21` named `design.png` become distinct files; ambiguous filename-only links stay untouched. |
-| Output profiles and templates | [profile guide](docs/output-profiles.md), [built-in manifest](profiles/work-os-v1/profile.json), and [profile regression](test/core/output-profile.test.ts) | `work-os-v1` is the default; a local profile can render `ATT-123/Jira Snapshot/Summary.md` without a TypeScript fork. |
-| Jira pagination, links, media, and origin safety | [Jira adapter regression](test/jira/jira-board-issue-reader.test.ts) | Follow Jira pagination, render a direct `blocks` link to `ATT-456`, fetch all comments, and reject an attachment URL such as `https://evil.example/file`. |
-| Release contents | [package manifest](package.json) and [release check](#public-github-versus-npm-publishing) | `pnpm release:check` builds, tests, and previews precisely the files named in `package.json#files`. |
-
-For source-level layer rules, read [src/AGENTS.md](src/AGENTS.md). For the
-test style and the temporary-directory fixtures behind the examples above,
-read [test/AGENTS.md](test/AGENTS.md). For a template-only change, begin in
-[profiles/AGENTS.md](profiles/AGENTS.md).
-
-## Before you install or run it
-
-You need four things:
-
-1. **Node.js 20 or newer.** Check with `node --version`.
-2. **pnpm.** If it is not installed, enable the Node-provided package manager:
-   `corepack enable pnpm`.
-3. **Read access to your Jira site** and a Jira API token for the account whose
-   issues you want to export.
-4. **A local output directory** where generated issue packets belong. For
-   example, exporting `ATT-5215` into `/tmp/packets` owns only
-   `/tmp/packets/ATT-5215/40 Jira/`; it never changes
-   `/tmp/packets/ATT-5215/00 Task.md`.
-
-### Credentials stay local
-
-The CLI reads these values from the process environment:
+The CLI reads credentials only from the process environment:
 
 ```text
 JIRA_HOST=https://your-company.atlassian.net
-JIRA_EMAIL=you@company.com
-JIRA_API_TOKEN=your-personal-jira-api-token
+JIRA_EMAIL=you@example.com
+JIRA_API_TOKEN=your-api-token
 ```
 
-Do **not** add them to Git, issues, shell history shared with others, or this
-repository's documentation. `.env` is ignored for local development, but the
-preferred pattern is to inject the variables from your secret manager or shell
-session. The live Obsidian Work OS integration passes its token from Obsidian
-SecretStorage; it does not write it to the vault.
+Do not put these values in profile files, command arguments, generated output,
+or source control.
 
-## Choose an execution path
+## Discover the command contract
 
-### 1. Run from a source checkout — best for development
-
-```bash
-git clone https://github.com/doruksahin/jira-markdown-exporter.git
-cd jira-markdown-exporter
-corepack enable pnpm
-pnpm install
-pnpm check
-
-JIRA_HOST=https://example.atlassian.net \
-JIRA_EMAIL=you@example.com \
-JIRA_API_TOKEN=... \
-pnpm export --issue-keys ATT-1,ATT-2 --output-dir /path/to/packets --json
-```
-
-`pnpm export` runs [`src/cli/main.ts`](src/cli/main.ts) through `tsx`. This is
-the clearest route when changing or debugging the exporter.
-
-### 2. Install the released CLI globally — best for normal use
-
-After the first npm release, install the versioned package once:
-
-```bash
-npm install --global jira-markdown-exporter
+```sh
 jira-markdown-export --help
 ```
 
-The `bin` field installs `jira-markdown-export` into your global PATH. Use it
-with local Jira credentials:
+The generated plain-text help is the self-contained interface reference for
+both unattended operators and language models. It includes every option, the
+three required environment variables, selector exclusivity, receipt and output
+semantics, exit statuses, and copyable examples. When running directly from a
+source checkout, use `node dist/cli/main.js --help`.
 
-```bash
-JIRA_HOST=https://example.atlassian.net \
+## Run from source
+
+The package is not published to npm yet, so a pinned source checkout is the
+stable installation path.
+
+```sh
+git clone https://github.com/doruksahin/jira-markdown-exporter.git
+cd jira-markdown-exporter
+exporter_ref="FULL_40_CHARACTER_COMMIT_SHA"
+printf '%s\n' "$exporter_ref" | grep -Eq '^[0-9a-f]{40}$' || {
+  echo "Replace exporter_ref with a full lowercase commit SHA" >&2
+  exit 1
+}
+git fetch origin
+git checkout --detach "$exporter_ref"
+test "$(git rev-parse HEAD)" = "$exporter_ref"
+corepack enable
+pnpm install --frozen-lockfile
+pnpm check
+node dist/cli/main.js --help
+```
+
+Export one or more explicit issues with the built-in generic profile:
+
+```sh
+JIRA_HOST=https://your-company.atlassian.net \
 JIRA_EMAIL=you@example.com \
-JIRA_API_TOKEN=... \
-jira-markdown-export --issue-keys ATT-5215 --output-dir /path/to/packets --json
+JIRA_API_TOKEN=your-api-token \
+node dist/cli/main.js \
+  --issue-keys PROJ-123,PROJ-124 \
+  --output-dir /tmp/jira-export \
+  --profile generic-v1 \
+  --json
 ```
 
-Until that first release exists, use the source-checkout path above. Do not use
-`pnpm dlx github:…` as the primary installation method: Git dependencies may
-download development dependencies and are not a stable release channel.
+Select with JQL instead:
 
-### 3. Use it from Obsidian Work OS
-
-The internal Work OS release pins and bundles this package and the canonical
-`work-os-v1` profile. A teammate does not clone this repository, install Node,
-or configure an exporter path. Work OS passes credentials in memory from its
-tracked team profile, local email, and Obsidian SecretStorage selection.
-
-The compatibility entrypoint [`src/board-sync/cli.ts`](src/board-sync/cli.ts)
-remains for standalone CLI consumers; it is not the Work OS runtime boundary.
-
-Work OS imports only `jira-markdown-exporter/embedded`. That entrypoint requires
-an injected `JiraGetTransport`; it has no native network fallback and its built
-runtime graph contains no `jira.js`, Axios, `fetch`, or XHR implementation.
-`createJiraReadApi({ host }, { jiraGet })` and embedded export accept only the
-Jira host; email and API token stay inside the injected transport that owns
-authorization. The facade owns the Jira paths, pagination,
-ownership JQL, standard issue fields, and normalized records used by Setup
-Doctor, boards, sync, and migration. The transport owns in-memory
-authentication at the final request boundary.
-
-Attachment download is enabled when the caller also supplies an
-`AttachmentGetTransport`. The exporter derives the exact Jira REST v3 content
-endpoint from the attachment ID and requests it with `redirect=false`; callers
-do not execute Jira-provided content URLs. This lets Obsidian `requestUrl`
-return bytes without exposing credentials to a redirected origin.
-
-## Usage
-
-```bash
-JIRA_HOST=https://example.atlassian.net \
+```sh
+JIRA_HOST=https://your-company.atlassian.net \
 JIRA_EMAIL=you@example.com \
-JIRA_API_TOKEN=... \
-jira-markdown-export --issue-keys ATT-1,ATT-2 --output-dir /path/to/packets --json
+JIRA_API_TOKEN=your-api-token \
+node dist/cli/main.js \
+  --jql 'project = PROJ AND statusCategory != Done ORDER BY key' \
+  --output-dir /tmp/jira-export \
+  --profile generic-v1 \
+  --json
 ```
 
-Use `--jql '<query>'` instead of `--issue-keys` to select issues with Jira
-Query Language. Add `--download-attachments` to write binaries below the owned
-`attachments/` directory. The CLI is read-only against Jira.
+Use `--jql-file /absolute/path/to/scope.jql` when the query is already stored
+as a runner input. Exactly one of `--issue-keys`, `--jql`, and `--jql-file` is
+required. `--output-dir` is also required. `generic-v1` is the default, so its
+`--profile` flag may be omitted.
 
-### Select an output profile
+## Run as a stateless server job
 
-The default profile is the existing, Work OS-compatible `work-os-v1` layout.
-Passing it explicitly produces the same packet:
+The exporter is a one-shot process. It receives credentials from the
+environment and selection/profile paths from arguments, writes into a unique
+work directory, emits a receipt, and exits. It keeps no database, cache,
+scheduler, selected board, selected person, or previous-run state.
 
-```bash
-jira-markdown-export --issue-keys ATT-123 --output-dir /path/to/packets --profile work-os-v1
+```sh
+run_root="$(mktemp -d)"
+mkdir "$run_root/output"
+
+JIRA_HOST="$JIRA_HOST" \
+JIRA_EMAIL="$JIRA_EMAIL" \
+JIRA_API_TOKEN="$JIRA_API_TOKEN" \
+node dist/cli/main.js \
+  --jql-file /read-only-inputs/scope.jql \
+  --template-dir /read-only-inputs/profile \
+  --output-dir "$run_root/output" \
+  --receipt "$run_root/export-receipt.json"
 ```
 
-To use a locally checked-out profile, pass `--template-dir` instead. Its
-`profile.json` manifest and Liquid templates define only rendered Markdown;
-the exporter still owns atomic writes, attachment downloading, and path safety.
-See the concrete `ATT-123` profile in [the output-profile guide](docs/output-profiles.md).
+The runner remains responsible for secret injection, scheduling, retries,
+retention, and publishing the output. See [Stateless server operation](docs/server-operation.md)
+for the complete artifact-build, checksum, installation, execution, and
+verification playbook.
 
-In JSON mode, the final stdout line conforms to
-[schemas/export-receipt.schema.json](schemas/export-receipt.schema.json).
-Failed issue entries retain the existing `error` text and may also contain an
-allowlisted `failure` object for known transport errors: code, operation,
-summary, status, transport code, retryability, and attempt count only.
-Exit status `0` means every issue synced, `2` means a partial per-issue result,
-and `1` means the export failed.
+## Use an external output profile
 
-The compatibility entrypoint `src/board-sync/cli.ts` is retained for callers
-that previously invoked the embedded Work OS exporter with `tsx`.
+Use `--template-dir` when a consuming repository owns its Markdown layout:
 
-### Observable behavior
+```sh
+JIRA_HOST=https://your-company.atlassian.net \
+JIRA_EMAIL=you@example.com \
+JIRA_API_TOKEN=your-api-token \
+node dist/cli/main.js \
+  --issue-keys PROJ-123 \
+  --output-dir /tmp/jira-export \
+  --template-dir /absolute/path/to/profile \
+  --json
+```
 
-The CLI always reads Jira and never mutates it. For `ATT-123`, the writer is
-allowed to refresh only the generated directory below; this is asserted with a
-real sibling file in
-[test/core/work-os-v1-writer.test.ts](test/core/work-os-v1-writer.test.ts):
+`--profile` and `--template-dir` are mutually exclusive. A local profile is
+data, not executable code: `profile.json` maps Liquid templates to Markdown
+outputs. See [Output profiles](docs/output-profiles.md) for the complete
+manifest and template contract.
+
+For the built-in profile, `PROJ-123` produces:
 
 ```text
-<output-dir>/ATT-123/
-├── 00 Task.md       # human-owned; preserved
-└── 40 Jira/         # exporter-owned; replaced as one snapshot
+/tmp/jira-export/PROJ-123/jira-snapshot/
+├── issue.md
+├── comments.md
+├── attachments.md
+└── metadata.md
 ```
 
-When multiple issue keys are requested, one failed issue does not erase a
-completed packet. The `ATT-1` success / `ATT-2` failure fixture in
-[test/core/run-export.test.ts](test/core/run-export.test.ts) produces a
-`partial` receipt and leaves `ATT-1/40 Jira/00 Issue.md` readable. Treat both
-examples as public compatibility behavior.
+The writer stages and atomically replaces only
+`<output-dir>/<issue-key>/<ownedDirectory>`. Files beside that directory are
+not owned or changed by the exporter. A successful repeat export is
+byte-identical, and stale files inside the owned directory are removed.
 
-### Jira read boundaries
+## Attachments
 
-The Node CLI uses the typed `jira.js` Cloud v3 client for issue JSON, comment
-pages, and enhanced JQL pages. Its intentionally narrow
-[`JiraReadClient`](src/jira/jira-read-client.ts) exposes only those read
-operations, so exporter code cannot reach Jira mutation APIs by accident.
-Attachment binaries remain on native `fetch`: their manual redirect handling
-and exact Jira/Atlassian Media origin allowlist are a separate security
-boundary. The embedded subpath instead uses its required GET callback and the
-same reader/output pipeline; it never imports the Node transports.
+Without `--download-attachments`, templates receive attachment metadata but no
+binary files are written. Add the flag to download binaries into the profile's
+`attachmentsDirectory`:
 
-### Linked work items
-
-`00 Issue.md` also includes direct Jira issue links. For example, a Jira
-relationship from `ATT-123` that **blocks** `ATT-456` renders the configured
-relationship label, linked key and URL, summary, status, issue type, and
-assignee. The `ATT-456` data is returned as part of Jira's `issuelinks` issue
-field; the exporter does not recursively export `ATT-456` or make separate
-requests for its comments and attachments. This preserves one snapshot per
-selected issue and respects Jira's own custom link types. The exact regression
-is [the Jira adapter test](test/jira/jira-board-issue-reader.test.ts) and the
-rendered `ATT-123` packet is [the work-os-v1 fixture](test/fixtures/work-os-v1/00%20Issue.md).
-
-## Public GitHub versus npm publishing
-
-This repository can be public on GitHub without being published to npm.
-GitHub is the source of truth; npm is the installation channel for stable CLI
-releases. The npm archive will contain only `dist/`, `profiles/`, `schemas/`, and the
-declared documentation files from `package.json`'s `files` list. Source code,
-tests, vault data, local `.env` files, and downloaded Jira attachments are not
-published.
-
-The package is intentionally blocked from publishing today by `"private":
-true` and `"license": "UNLICENSED"`. Before the first release, choose a
-license, verify that `jira-markdown-exporter` is still available on the public
-npm registry, authenticate to npm, remove the publish block, run
-`pnpm release:check`, tag the exact `package.json` version, and publish from that clean commit. The
-explicit `publishConfig.registry` prevents an accidental publish to GitHub
-Packages when a developer's local npm registry is configured there.
-
-The exact release gates live in [package.json](package.json): `prepack` builds
-the ignored `dist/` artifact and `release:check` runs the typecheck, the
-regression suite, and `npm pack --dry-run`. The npm archive intentionally does
-not include the source checkout, tests, vault data, `.env`, or downloaded
-attachments.
-
-## Initial contract
-
-The first release preserves the `work-os-v1` profile:
-
-```text
-<output-dir>/<JIRA-KEY>/40 Jira/
-├── 00 Issue.md
-├── 10 Comments.md
-├── 20 Attachments.md
-├── 90 Sync.md
-└── attachments/
+```sh
+node dist/cli/main.js \
+  --issue-keys PROJ-123 \
+  --output-dir /tmp/jira-export \
+  --template-dir /absolute/path/to/profile \
+  --download-attachments \
+  --json
 ```
 
-The exporter owns only `40 Jira/`; it must not change task-packet files outside
-that directory or write back to Jira.
+Attachment filenames are prefixed with the Jira attachment ID to prevent
+collisions. Downloads are restricted to the configured Jira origin and the
+official Atlassian media origin. A failed attachment download becomes a
+bounded warning; it does not expose the remote content URL or credentials.
+
+## Receipt and exit status
+
+With `--receipt /path/to/export-receipt.json`, the exporter atomically writes
+the machine result. A completed export result conforms to
+[`schemas/export-receipt.schema.json`](schemas/export-receipt.schema.json) and
+includes `exporterVersion`, `profileId`, and `profileDigest` so a downstream
+process can verify which executable and rendering profile produced the staged
+files. If validation fails before the profile is available, the file contains
+a preflight error envelope without profile provenance; it is not a completed
+export receipt.
+
+Existing callers can continue to send JSON to stdout with `--json`:
+
+```sh
+node dist/cli/main.js \
+  --issue-keys PROJ-123 \
+  --output-dir /tmp/jira-export \
+  --profile generic-v1 \
+  --json > /tmp/jira-export-receipt.json
+```
+
+`--receipt` and `--json` are mutually exclusive. Without either option, stdout
+contains human-readable status.
+
+A completed receipt records the schema version, exporter and profile
+provenance, overall status, counts, output root, and one result per issue. A
+synced issue includes its generated directory, counts, and attachment warnings.
+A failed issue includes an error string and may also include a structured
+`failure` object. Only the structured failure facts are allowlisted and
+bounded; filenames, warnings, and unclassified error strings can originate
+from Jira or the local runtime.
+
+Treat the complete receipt as potentially sensitive operational output. Keep it
+in local or runner-temporary storage, do not publish it by default, and sanitize
+it before sharing. Credentials and attachment content URLs are not intentional
+receipt fields, but callers must not rely on arbitrary error text being safe.
+
+Exit statuses are:
+
+| Status | Meaning |
+| --- | --- |
+| `0` | Every selected issue was exported. |
+| `2` | Some issues were exported and some failed. Successful output remains available. |
+| `1` | Argument/configuration failure, or no selected issue was exported. |
+
+Shells treat `2` as failure. A caller that intentionally accepts partial
+results must capture the status, validate the receipt, and publish only entries
+whose status is `synced`.
+
+## Safety and behavior guarantees
+
+- Jira access is GET-only; this package never creates, edits, comments on, or
+  transitions an issue.
+- Issue keys, profile paths, output paths, and profile symlinks are validated.
+- Templates cannot access Jira credentials or attachment content URLs.
+- Issues are written independently, so one failed issue does not roll back a
+  completed issue.
+- Generated Markdown has stable whitespace and one final newline.
+- Progress and human-readable output go to stdout only when `--json` is not
+  selected; JSON mode is suitable for process composition.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `JIRA_HOST/JIRA_EMAIL/JIRA_API_TOKEN is required` | Export the named variable in the same process that launches the CLI. |
+| `Use exactly one of --issue-keys, --jql, or --jql-file` | Keep one selector and remove the others, or add the missing selector. |
+| `Unknown built-in output profile` | Use `generic-v1`, or pass an absolute `--template-dir`. |
+| `Could not load output profile` | Confirm `profile.json` exists and every referenced `.liquid` file is present. |
+| `unsafe ... path` | Remove absolute paths, empty segments, backslashes, or `..` from the profile. |
+| Exit `2` | Inspect the receipt's failed issue entries; successful issue directories are still valid. |
+| Attachment warning | Confirm the account can read the attachment and that the URL belongs to Jira or Atlassian Media. |
+
+Re-run the same command after fixing a transient failure. The owned snapshot
+directory is replaced atomically and deterministic output should produce no
+content change.
+
+## Development and release proof
+
+Use the closest contract test when changing behavior:
+
+- CLI and selectors: `test/jira/cli.test.ts`
+- reproducible package artifact: `test/release-artifact.test.ts`
+- Jira pagination and attachment safety: `test/jira/jira-board-issue-reader.test.ts`
+- partial results and receipts: `test/core/run-export.test.ts`
+- generic output and idempotency: `test/core/generic-profile-writer.test.ts`
+- profile validation: `test/core/output-profile.test.ts`
+- consumer-neutral package boundary: `test/core/package-boundary.test.ts`
+
+Run the complete check:
+
+```sh
+pnpm check
+```
+
+Before publishing a package candidate, also run:
+
+```sh
+pnpm release:check
+```
+
+`release:check` typechecks, builds, runs all tests, and previews the exact npm
+archive. To create the versioned `.tgz` and `SHA256SUMS` without publishing:
+
+```sh
+artifact_dir="$(mktemp -d)/release"
+pnpm release:artifact "$artifact_dir"
+```
+
+Repeated unchanged builds are required to produce the same archive SHA-256.
+The checksum identifies the package payload; it does not lock the transitive
+runtime dependencies that `npm install` resolves. A pinned source commit plus
+`pnpm-lock.yaml` and `pnpm install --frozen-lockfile` remains the reproducible
+build path. See [Stateless server operation](docs/server-operation.md) for the
+separate, network-dependent installed-package smoke.
+The package remains intentionally blocked from npm publication by
+`private: true` and `UNLICENSED`; choosing a license and publication authority
+is a separate release decision.
+
+## GitHub releases
+
+Release Please owns version bumps, `CHANGELOG.md`, `vX.Y.Z` tags, and GitHub
+Releases. Each release contains the versioned `.tgz` package and
+`SHA256SUMS`. Changes reach a release through a normal Conventional Commit PR
+followed by the generated `chore(main): release X.Y.Z` PR; neither version
+files nor tags are created manually.
+
+See [the release playbook](docs/releasing.md) for the exact merge, verification,
+artifact-download, checksum, installation, and recovery commands.

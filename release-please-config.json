@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "51769487981853f16571b83cc05239d658d6efbe",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "jira-markdown-exporter",
+      "include-v-in-tag": true,
+      "include-component-in-tag": false,
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}

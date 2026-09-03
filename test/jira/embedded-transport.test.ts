@@ -60,6 +60,88 @@ describe('embedded transport boundary', () => {
     expect(issueUrls[1]?.searchParams.get('startAt')).toBe('1');
   });
 
+  it('lists assigned issues through enhanced-search token pagination', async () => {
+    const urls: URL[] = [];
+    const api = createJiraReadApi(embeddedConfig, { jiraGet: async (request) => {
+      const url = new URL(request.url);
+      urls.push(url);
+      return url.searchParams.get('nextPageToken')
+        ? response({ issues: [rawIssue('PROJ-2', 'Two')], nextPageToken: '' })
+        : response({ issues: [rawIssue('PROJ-1', 'One')], nextPageToken: 'page-2' });
+    } });
+
+    await expect(api.listAssignedIssues({
+      projectKey: 'PROJ',
+      assigneeAccountId: 'acct-1',
+      unresolvedOnly: true,
+      orderByUpdatedDesc: true,
+      storyPointsField: 'customfield_2',
+    })).resolves.toMatchObject({ total: 2, issues: [{ key: 'PROJ-1' }, { key: 'PROJ-2' }] });
+    expect(urls.map((url) => url.pathname)).toEqual(['/rest/api/3/search/jql', '/rest/api/3/search/jql']);
+    expect(urls[0]?.searchParams.get('jql')).toBe(
+      'project = "PROJ" AND assignee = "acct-1" AND resolution = Unresolved ORDER BY updated DESC',
+    );
+    expect(urls[1]?.searchParams.get('nextPageToken')).toBe('page-2');
+  });
+
+  it('selects assigned sprint issues and assigned children of sprint members', async () => {
+    const jqls: string[] = [];
+    const api = createJiraReadApi(embeddedConfig, { jiraGet: async (request) => {
+      const jql = new URL(request.url).searchParams.get('jql') || '';
+      jqls.push(jql);
+      return jql.includes('sprint = 42')
+        ? response({ issues: [rawIssue('PROJ-1', 'Direct'), rawIssue('PROJ-10', 'Parent')] })
+        : response({ issues: [
+          rawIssue('PROJ-1', 'Direct'),
+          rawIssue('PROJ-2', 'Child', 'PROJ-10'),
+          rawIssue('PROJ-3', 'Outside'),
+        ] });
+    } });
+
+    await expect(api.listSprintIssues({
+      sprintId: 42,
+      projectKey: 'PROJ',
+      assigneeAccountId: 'acct-1',
+      storyPointsField: 'customfield_2',
+    })).resolves.toMatchObject({ total: 2, issues: [{ key: 'PROJ-1' }, { key: 'PROJ-2' }] });
+    expect(jqls).toEqual([
+      'project = "PROJ" AND assignee = "acct-1"',
+      'project = "PROJ" AND sprint = 42',
+    ]);
+  });
+
+  it('rejects repeated enhanced-search tokens and invalid assigned-issue policy', async () => {
+    const api = createJiraReadApi(embeddedConfig, { jiraGet: async () => (
+      response({ issues: [rawIssue('PROJ-1', 'One')], nextPageToken: 'same-token' })
+    ) });
+
+    await expect(api.listAssignedIssues({
+      projectKey: 'PROJ',
+      assigneeAccountId: 'acct-1',
+      unresolvedOnly: true,
+      orderByUpdatedDesc: true,
+      storyPointsField: 'customfield_2',
+    })).rejects.toMatchObject({ code: 'JIRA_PAGINATION_INVALID', operation: 'jira-assigned-issues' });
+    await expect(api.listAssignedIssues({
+      projectKey: 'PROJ',
+      assigneeAccountId: 'acct-1',
+      unresolvedOnly: false,
+      orderByUpdatedDesc: true,
+      storyPointsField: 'customfield_2',
+    } as unknown as Parameters<typeof api.listAssignedIssues>[0])).rejects.toThrow('explicitly select');
+
+    const emptyPageApi = createJiraReadApi(embeddedConfig, { jiraGet: async () => (
+      response({ issues: [], nextPageToken: 'unexpected-next-page' })
+    ) });
+    await expect(emptyPageApi.listAssignedIssues({
+      projectKey: 'PROJ',
+      assigneeAccountId: 'acct-1',
+      unresolvedOnly: true,
+      orderByUpdatedDesc: true,
+      storyPointsField: 'customfield_2',
+    })).rejects.toMatchObject({ code: 'JIRA_PAGINATION_INVALID', operation: 'jira-assigned-issues' });
+  });
+
   it('preserves bounded injected transport facts and drops unsafe text', async () => {
     const client = new JiraSdkReadClient(config, async () => {
       throw Object.assign(new Error('token=test-only-token&jql=secret'), {
@@ -117,7 +199,7 @@ describe('embedded transport boundary', () => {
 
 function response(body: unknown) { return Promise.resolve({ status: 200, headers: {}, body }); }
 
-function rawIssue(key: string, summary: string) {
+function rawIssue(key: string, summary: string, parentKey = 'PROJ-0') {
   return {
     id: key.replace(/\D/g, '') || '1', key, fields: {
       summary,
@@ -125,14 +207,14 @@ function rawIssue(key: string, summary: string) {
       status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
       priority: { name: 'High' }, issuetype: { name: 'Task' }, updated: '2026-08-18T10:00:00Z',
       assignee: { accountId: 'acct-1', displayName: 'Person', active: true }, comment: { total: 2 },
-      parent: { key: 'ATT-0' }, labels: ['one'], customfield_2: 3,
+      parent: { key: parentKey }, labels: ['one'], customfield_2: 3,
     },
   };
 }
 
 const inlineProfile: OutputProfile = {
-  manifest: { id: 'work-os-v1', schemaVersion: 1, ownedDirectory: '40 Jira', attachmentsDirectory: 'attachments', files: [{ template: '00 Issue.md.liquid', output: '00 Issue.md' }] },
-  templates: { '00 Issue.md.liquid': '# {{ issue.key }}\n' },
+  manifest: { id: 'test-v1', schemaVersion: 1, ownedDirectory: 'snapshot', attachmentsDirectory: 'attachments', files: [{ template: 'issue.md.liquid', output: 'issue.md' }] },
+  templates: { 'issue.md.liquid': '# {{ issue.key }}\n' },
 };
 
 async function temporaryDirectory(): Promise<string> {

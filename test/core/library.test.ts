@@ -23,20 +23,20 @@ describe('exportJiraMarkdown', () => {
     }, { reader: new FakeReader() });
 
     expect(receipt).toMatchObject({ schemaVersion: 1, status: 'success', total: 1, synced: 1 });
-    expect(await readFile(join(outputDir, 'ATT-1', '40 Jira', '00 Issue.md'), 'utf8'))
+    expect(await readFile(join(outputDir, 'ATT-1', 'snapshot', 'issue.md'), 'utf8'))
       .toBe('# ATT-1\nLibrary fixture\n');
   });
 });
 
 const inlineProfile: OutputProfile = {
   manifest: {
-    id: 'work-os-v1',
+    id: 'test-v1',
     schemaVersion: 1,
-    ownedDirectory: '40 Jira',
+    ownedDirectory: 'snapshot',
     attachmentsDirectory: 'attachments',
-    files: [{ template: '00 Issue.md.liquid', output: '00 Issue.md' }],
+    files: [{ template: 'issue.md.liquid', output: 'issue.md' }],
   },
-  templates: { '00 Issue.md.liquid': '# {{ issue.key }}\n{{ issue.summary }}\n' },
+  templates: { 'issue.md.liquid': '# {{ issue.key }}\n{{ issue.summary }}\n' },
 };
 
 class FakeReader implements BoardIssueReader {

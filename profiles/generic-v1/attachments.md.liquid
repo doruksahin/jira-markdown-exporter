@@ -1,0 +1,7 @@
+# {{ issue.key }} attachments
+
+| Name | MIME type | Size | Author | Created | Local file |
+| --- | --- | ---: | --- | --- | --- |
+{% if attachments.size > 0 %}{% for attachment in attachments %}| {{ attachment.filename | tableCell }} | {{ attachment.mimeType | tableCell }} | {{ attachment.size | formatBytes }} | {{ attachment.author | tableCell }} | {{ attachment.created | default: '—' }} | {% if attachment.localPath != blank %}[open](<{{ attachment.localPath }}>){% elsif sync.attachmentDownloadsEnabled %}download failed{% else %}not downloaded{% endif %} |
+{% endfor %}{% else %}| _No attachments_ | — | — | — | — | — |
+{% endif %}

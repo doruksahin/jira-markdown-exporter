@@ -28,6 +28,7 @@ superseded = []
 [types.adr.actions]
 accept = "accepted"
 reject = "rejected"
+supersede = "superseded"
 
 [types.spec]
 dir = "decree/spec"

@@ -1,11 +1,11 @@
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { Liquid } from 'liquidjs';
 import type { BoardAttachmentSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
 import { errorMessage } from '../domain/errors.js';
 import { exporterTransportFailure } from '../transport.js';
 import { normalizeIssueKey } from '../domain/board-snapshot.js';
-import type { OutputProfile } from './output-profile.js';
+import { validateOutputProfile, type OutputProfile } from './output-profile.js';
 import { createExportTemplateModel, sortedAttachments } from './template-model.js';
 
 export interface ProfileWriteOptions {
@@ -27,15 +27,17 @@ export async function writeOutputProfileSnapshot(
   issue: BoardIssueSnapshot,
   options: ProfileWriteOptions,
 ): Promise<ProfileWriteResult> {
+  const profile = await validateOutputProfile(options.profile);
   const key = normalizeIssueKey(issue.key);
-  const issueDir = join(options.outputDir, key, options.profile.manifest.ownedDirectory);
+  await assertIssueRootConfined(options.outputDir, key);
+  const issueDir = join(options.outputDir, key, profile.manifest.ownedDirectory);
   const stagingDir = `${issueDir}.next-${process.pid}-${Date.now()}`;
   await mkdir(dirname(issueDir), { recursive: true });
   await rm(stagingDir, { recursive: true, force: true });
   await mkdir(stagingDir, { recursive: true });
 
   try {
-    const attachments = await writeAttachmentBinaries(issue, stagingDir, options);
+    const attachments = await writeAttachmentBinaries(issue, stagingDir, { ...options, profile });
     const localizedIssue = {
       ...issue,
       description: localizeInlineMedia(
@@ -52,7 +54,7 @@ export async function writeOutputProfileSnapshot(
       options.downloadAttachments === true,
       attachments.warnings,
     );
-    const rendered = await renderProfile(options.profile, model);
+    const rendered = await renderProfile(profile, model);
     await Promise.all(rendered.map(async ({ output, content }) => {
       const target = join(stagingDir, output);
       await mkdir(dirname(target), { recursive: true });
@@ -68,6 +70,17 @@ export async function writeOutputProfileSnapshot(
   } catch (error) {
     await rm(stagingDir, { recursive: true, force: true });
     throw error;
+  }
+}
+
+async function assertIssueRootConfined(outputDir: string, key: string): Promise<void> {
+  const issueRoot = join(outputDir, key);
+  try {
+    if ((await lstat(issueRoot)).isSymbolicLink()) {
+      throw new Error(`Issue output directory must not be a symbolic link: ${key}`);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
 }
 
