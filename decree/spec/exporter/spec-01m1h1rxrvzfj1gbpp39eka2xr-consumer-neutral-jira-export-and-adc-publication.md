@@ -186,8 +186,9 @@ publication composition without committing its output.
 - [x] Release Please manifest configuration starts after the pre-extraction
   baseline, proposes the next version from Conventional Commits, and owns
   `package.json`, `CHANGELOG.md`, the release manifest, tag, and GitHub Release.
-- [x] A created GitHub Release receives the checksummed package tarball and
-  `SHA256SUMS`, while npm publication remains disabled.
+- [x] The initial `v0.3.0` GitHub-only release receives the checksummed package
+  tarball and `SHA256SUMS` while npm publication remains disabled at that
+  stage.
 - [x] The README and release playbook document the normal feature PR, generated
   release PR, verification, recovery, and artifact-installation flow.
 - [x] The first release through this rail is merged and verified end to end:
@@ -196,10 +197,10 @@ publication composition without committing its output.
 - [x] The package is renamed to `@doruksahin/jira-markdown-exporter`, remains
   executable as `jira-markdown-export`, and publishes only its reviewed
   runtime allowlist under the MIT license.
-- [ ] A created release builds one tarball, verifies its checksum and installed
+- [x] A created release builds one tarball, verifies its checksum and installed
   CLI, attaches it to GitHub, and publishes that exact tarball to npm through
   GitHub OIDC without a long-lived npm write token.
-- [ ] Release Please version, tag, changelog, GitHub Release, tarball filename,
+- [x] Release Please version, tag, changelog, GitHub Release, tarball filename,
   runtime version, and npm package version remain one coherent release
   identity.
 - [x] README and release/server playbooks contain copy-paste exact-version
