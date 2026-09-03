@@ -164,16 +164,16 @@ publication composition without committing its output.
   self-contained for humans and language models, including purpose, required
   environment, all options, selector exclusivity, output/receipt semantics,
   exit statuses, and examples, while existing CLI behavior remains compatible.
-- [ ] Pull requests and `main` pushes run the complete Node 20 release check,
+- [x] Pull requests and `main` pushes run the complete Node 20 release check,
   with workflow dependencies pinned to reviewed immutable action revisions.
-- [ ] Release Please manifest configuration starts after the pre-extraction
+- [x] Release Please manifest configuration starts after the pre-extraction
   baseline, proposes the next version from Conventional Commits, and owns
   `package.json`, `CHANGELOG.md`, the release manifest, tag, and GitHub Release.
-- [ ] A created GitHub Release receives the checksummed package tarball and
+- [x] A created GitHub Release receives the checksummed package tarball and
   `SHA256SUMS`, while npm publication remains disabled.
 - [x] The README and release playbook document the normal feature PR, generated
   release PR, verification, recovery, and artifact-installation flow.
-- [ ] The first release through this rail is merged and verified end to end:
+- [x] The first release through this rail is merged and verified end to end:
   release PR, version, tag, GitHub Release, package archive, checksum, and
   installed CLI help.
 - [ ] A manual read-only GitHub Actions smoke run completes, validates changed
