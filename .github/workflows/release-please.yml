@@ -86,7 +86,7 @@ jobs:
           pnpm release:artifact "$RUNNER_TEMP/jira-markdown-exporter-release"
           cd "$RUNNER_TEMP/jira-markdown-exporter-release"
           sha256sum --check SHA256SUMS
-          pnpm --dir "$GITHUB_WORKSPACE" release:smoke-install \
+          node "$GITHUB_WORKSPACE/scripts/smoke-installed-artifact.mjs" \
             "$RUNNER_TEMP/jira-markdown-exporter-release/doruksahin-jira-markdown-exporter-${{ steps.identity.outputs.version }}.tgz"
 
       - name: Attach or verify package artifacts on the GitHub Release
