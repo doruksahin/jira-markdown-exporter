@@ -61,10 +61,10 @@ npm exec --yes \
   -- jira-markdown-export --help
 ```
 
-Confirm the requested version is visible on npm before using the registry
-commands. If its first public publication is not complete, install the
-checksummed `.tgz` from its GitHub Release or run a pinned source checkout. See
-[Stateless server operation](docs/server-operation.md) for both procedures.
+The public package is available from npm. Confirm the requested version exists
+before using it in unattended work; the checksummed GitHub Release `.tgz`
+remains the independent artifact-verification and fallback installation path.
+See [Stateless server operation](docs/server-operation.md) for both procedures.
 
 ## Run from source
 

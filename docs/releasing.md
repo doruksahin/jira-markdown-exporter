@@ -203,8 +203,13 @@ help contract.
 
 The GitHub-only release rail was proven by
 [`v0.3.0`](https://github.com/doruksahin/jira-markdown-exporter/releases/tag/v0.3.0).
-That statement does not claim `v0.3.0` or any later version has been published
-to npm.
+The exact [`v0.4.0`](https://github.com/doruksahin/jira-markdown-exporter/releases/tag/v0.4.0)
+tarball was the one-time interactive npm bootstrap. The subsequent
+[`v0.4.1`](https://github.com/doruksahin/jira-markdown-exporter/releases/tag/v0.4.1)
+release proved Trusted Publishing end to end: GitHub OIDC published the new
+version without an npm token, npm recorded SLSA provenance, the GitHub and npm
+tarballs were byte-identical, and an isolated registry install printed the CLI
+help contract.
 
 ## Recovery
 
