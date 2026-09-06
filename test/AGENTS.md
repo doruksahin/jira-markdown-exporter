@@ -1,22 +1,22 @@
 # Test Guide
 
-Read the root `AGENTS.md` first. Tests here define the standalone exporter's
+Read the root [agent guide](../AGENTS.md) first. Tests here define the standalone exporter's
 observable contract.
 
 Use the closest existing pattern:
 
-- Writer behavior: `core/generic-profile-writer.test.ts` uses a temporary
+- Writer behavior: [core/generic-profile-writer.test.ts](core/generic-profile-writer.test.ts) uses a temporary
   output root to prove exact bytes, idempotency, stale-file replacement, and
   preservation outside the profile-owned directory.
-- Runner behavior: `core/run-export.test.ts` uses a fake reader to prove JQL
+- Runner behavior: [core/run-export.test.ts](core/run-export.test.ts) uses a fake reader to prove JQL
   selection, de-duplication, bounded failures, and partial results.
-- CLI behavior: `jira/cli.test.ts` calls exported argument and main functions;
+- CLI behavior: [jira/cli.test.ts](jira/cli.test.ts) calls exported argument and main functions;
   do not spawn a shell merely to test parsing.
-- Jira behavior: `jira/jira-board-issue-reader.test.ts` fakes the narrow Jira
+- Jira behavior: [jira/jira-board-issue-reader.test.ts](jira/jira-board-issue-reader.test.ts) fakes the narrow Jira
   read client and uses mocked `fetch` only for attachment bytes.
-- Profile behavior: `core/output-profile.test.ts` creates local profiles and
+- Profile behavior: [core/output-profile.test.ts](core/output-profile.test.ts) creates local profiles and
   proves valid output plus traversal and symlink rejection.
-- Package independence: `core/package-boundary.test.ts` proves the shipped
+- Package independence: [core/package-boundary.test.ts](core/package-boundary.test.ts) proves the shipped
   runtime, schemas, and built-in profile remain consumer-neutral.
 
 Assert observable behavior rather than private call structure. For example,

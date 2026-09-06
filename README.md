@@ -310,15 +310,9 @@ content change.
 
 ## Development and release proof
 
-Use the closest contract test when changing behavior:
-
-- CLI and selectors: `test/jira/cli.test.ts`
-- reproducible package artifact: `test/release-artifact.test.ts`
-- Jira pagination and attachment safety: `test/jira/jira-board-issue-reader.test.ts`
-- partial results and receipts: `test/core/run-export.test.ts`
-- generic output and idempotency: `test/core/generic-profile-writer.test.ts`
-- profile validation: `test/core/output-profile.test.ts`
-- consumer-neutral package boundary: `test/core/package-boundary.test.ts`
+Use the [maintainer change map](docs/maintenance.md#change-map) to select the
+owning source and contract test. For documentation or architecture changes,
+run the [architecture and link checks](docs/maintenance.md#verification).
 
 Run the complete check:
 

@@ -1,0 +1,9 @@
+# Authored entry points, operational/architecture docs, nested agent guides,
+# and immutable architecture checker provenance. Globs include future pages.
+*.md
+docs/**/*.md
+src/**/AGENTS.md
+test/**/AGENTS.md
+profiles/**/AGENTS.md
+.architecture/SOURCE.md
+decree/**/*.md

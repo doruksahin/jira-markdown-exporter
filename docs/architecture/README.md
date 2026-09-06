@@ -1,7 +1,12 @@
 # Repository architecture
 
 This page records the current repository boundary. Public command details,
-schemas, and decision history remain authoritative in their owning files.
+schemas, and decision history remain authoritative in their owning files. Use
+[the maintainer guide](../maintenance.md) when changing this repository, the
+[shared standard](https://github.com/doruksahin/plugin-architecture/blob/main/standard/README.md)
+for the common format, and
+[shared architecture maintenance](https://github.com/doruksahin/plugin-architecture/blob/main/docs/maintenance.md)
+for model and diagram changes. The shared repository requires GitHub access.
 
 ## Responsibility
 
@@ -86,11 +91,13 @@ and embedded-runtime failure constraints belong to
 
 ## Current implementation
 
-`src/cli/main.ts` parses process inputs and loads the selected profile;
-`src/index.ts` or `src/embedded.ts` selects the Jira reader; Jira adapters
-produce `BoardIssueSnapshot`; `src/runner/run-export.ts` coordinates issues;
-and `src/output/profile-writer.ts` renders deterministic Markdown and replaces
-the owned directory. Built-in presentation is limited to the
+The [CLI](../../src/cli/main.ts) parses process inputs and loads the selected
+profile; the [root](../../src/index.ts) or [embedded](../../src/embedded.ts)
+entrypoint selects the [Jira reader](../../src/jira/jira-board-issue-reader.ts),
+which produces [BoardIssueSnapshot](../../src/domain/board-snapshot.ts);
+the [export runner](../../src/runner/run-export.ts) coordinates issues;
+and the [profile writer](../../src/output/profile-writer.ts) renders deterministic
+Markdown and replaces the owned directory. Built-in presentation is limited to the
 [`generic-v1` profile manifest](../../profiles/generic-v1/profile.json).
 
 The implemented consumer-neutral extraction and its verification scope are
@@ -113,6 +120,8 @@ Jira read-facade work described above.
 
 ## Decisions
 
+- [Documentation maintenance SPEC](../../decree/spec/architecture/spec-01m1v30630wpbw8n8r11wbx08q-progressive-architecture-documentation-and-link-checks.md)
+  owns progressive documentation and the local link gate.
 - [ADR-01M1H1J8YC48HC47TPGVNMFAES](../../decree/adr/exporter/adr-01m1h1j8yc48hc47tpgvnmfaes-consumer-neutral-jira-exporter-output.md)
   owns the consumer-neutral output and integration boundary.
 - [SPEC-01M0AM89HG8P9AK0DS0EX9NZ1H](../../decree/spec/exporter/spec-01m0am89hg8p9ak0ds0ex9nz1h-injected-read-only-transport-for-embedded-jira-export.md)
@@ -125,8 +134,12 @@ Jira read-facade work described above.
 `python3 .architecture/check.py` validates this repository's architecture
 contract and internal-package allowlist. Its immutable owner commit and byte
 hash are recorded in [`.architecture/SOURCE.md`](../../.architecture/SOURCE.md).
-`pnpm check` runs typechecking and the behavior suite. Tests use fake Jira
-readers/transports and temporary files: `test/jira` covers CLI and Jira adapter
-relationships, while `test/core` covers library, runner, schema, profile
-writer, and package-boundary behavior. No test relationship requires a live
-Jira site or a consumer repository.
+`pnpm check` runs typechecking and the behavior suite with fake Jira
+readers/transports and temporary files. Use the
+[maintainer change map](../maintenance.md#change-map) to locate each source
+contract and its tests. No test relationship requires a live Jira site or a
+consumer repository.
+
+The [maintenance verification commands](../maintenance.md#verification) also
+check local files and heading links with the pinned
+[Lychee CI job](../../.github/workflows/links.yml).
