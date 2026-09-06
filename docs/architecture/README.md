@@ -106,6 +106,11 @@ exports and ownership remain unchanged. The existing deferred item is recorded
 under
 [SPEC-01M1H1RXRVZFJ1GBPP39EKA2XR](../../decree/spec/exporter/spec-01m1h1rxrvzfj1gbpp39eka2xr-consumer-neutral-jira-export-and-adc-publication.md#deferred-v2).
 
+Separately, the shared model's planned `jira-to-packet` extraction moves
+AC-owned orchestration and templates into a separate producer repository; it
+does not extract exporter implementation or perform the independently deferred
+Jira read-facade work described above.
+
 ## Decisions
 
 - [ADR-01M1H1J8YC48HC47TPGVNMFAES](../../decree/adr/exporter/adr-01m1h1j8yc48hc47tpgvnmfaes-consumer-neutral-jira-exporter-output.md)
