@@ -8,6 +8,10 @@ The package has no knowledge of a consuming repository. A profile chooses the
 generated directory and Markdown filenames; the exporter owns only that
 directory beneath each issue key.
 
+See [Repository architecture](docs/architecture/README.md) for the current
+responsibility, interface, dependency, execution, storage, and failure
+boundaries.
+
 ## Requirements
 
 - Node.js 20 or newer

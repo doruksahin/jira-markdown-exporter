@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "jira-markdown-exporter",
+  "kind": "package",
+  "repository": "https://github.com/doruksahin/jira-markdown-exporter",
+  "owner": "doruksahin",
+  "document": "docs/architecture/README.md",
+  "sourcePaths": [
+    "package.json",
+    "src/cli/main.ts",
+    "src/index.ts",
+    "src/embedded.ts",
+    "src/domain/board-snapshot.ts",
+    "src/ports/board-issue-reader.ts",
+    "src/jira/jira-read-api.ts",
+    "src/runner/run-export.ts",
+    "src/output/profile-writer.ts",
+    "schemas/export-receipt.schema.json",
+    "test/core/package-boundary.test.ts"
+  ],
+  "dependencyChecks": [
+    {
+      "manifest": "package.json",
+      "allowedInternalPackages": []
+    }
+  ],
+  "boundaryChecks": []
+}

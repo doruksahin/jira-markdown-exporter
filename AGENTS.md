@@ -11,6 +11,10 @@ The public CLI is `src/cli/main.ts`. The reusable application entrypoint is
 `src/index.ts`. Public usage, receipt behavior, and exit codes are documented
 in `README.md` and `schemas/export-receipt.schema.json`.
 
+When changing public interfaces, responsibilities, dependencies, execution or
+storage integration, or failure behavior, read `docs/architecture/README.md`
+and keep `.architecture/contract.json` synchronized.
+
 ## Architecture
 
 ```text
