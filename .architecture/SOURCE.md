@@ -1,8 +1,8 @@
 # Architecture checker source
 
-`.architecture/check.py` is an unchanged copy of
+[`.architecture/check.py`](check.py) is an unchanged copy of
 [`tools/check-repository.py`](https://github.com/doruksahin/plugin-architecture/blob/f9961a34ba3665597e8d1d367e295e88f5aa1fea/tools/check-repository.py)
-from `doruksahin/plugin-architecture` at commit
+from [doruksahin/plugin-architecture](https://github.com/doruksahin/plugin-architecture) at commit
 `f9961a34ba3665597e8d1d367e295e88f5aa1fea`.
 
 The expected SHA-256 is

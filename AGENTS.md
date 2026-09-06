@@ -1,35 +1,23 @@
 # Jira Markdown Exporter — Agent Guide
 
-## Purpose and boundary
+This package exports read-only Jira snapshots through consumer-neutral output
+profiles. Consumers own their templates, workflow, packet lifecycle, and
+publication policy.
 
-This repository is a standalone, read-only Jira Cloud exporter. It fetches
-issues, normalizes them, renders a selected output profile, and returns a
-versioned receipt. It must not know the directory conventions, lifecycle, UI,
-or publication policy of any consuming repository.
+## Read when needed
 
-The public CLI is `src/cli/main.ts`. The reusable application entrypoint is
-`src/index.ts`. Public usage, receipt behavior, and exit codes are documented
-in `README.md` and `schemas/export-receipt.schema.json`.
-
-When changing public interfaces, responsibilities, dependencies, execution or
-storage integration, or failure behavior, read `docs/architecture/README.md`
-and keep `.architecture/contract.json` synchronized.
-
-## Architecture
-
-```text
-CLI or library caller
-  -> runExport application flow
-  -> BoardIssueReader port
-  -> JiraBoardIssueReader adapter
-  -> generic profile writer
-  -> <output>/<KEY>/<profile.ownedDirectory>
-```
-
-`BoardIssueSnapshot` is the boundary between Jira fetching and rendering. The
-writer must not import Jira response types. Output profiles own presentation
-only; they do not own Jira transport, attachment safety, receipts, or atomic
-filesystem replacement.
+- **Architecture:** Before changing interfaces, responsibilities, dependencies,
+  execution/storage integration, or failure behavior, read
+  [repository architecture](docs/architecture/README.md) and keep its
+  [contract](.architecture/contract.json) synchronized.
+- **Implementation:** Use the [change map](docs/maintenance.md#change-map) to
+  locate source and required proof; read the [source guide](src/AGENTS.md)
+  before changing runtime code.
+- **Tests or profiles:** Read the [test guide](test/AGENTS.md) or
+  [profile guide](profiles/AGENTS.md) before changing that area.
+- **Documentation:** Follow [documentation maintenance](docs/maintenance.md#documentation-and-links)
+  for routing, links, architecture updates, and the link check.
+- **Release:** Follow the [release playbook](docs/releasing.md).
 
 ## Non-negotiable rules
 
@@ -37,46 +25,19 @@ filesystem replacement.
 2. Never log or serialize credentials. Templates must not receive credentials
    or attachment content URLs.
 3. Keep runtime code, schemas, and packaged profiles consumer-neutral. The
-   package-boundary test is the executable guard.
+   [package-boundary test](test/core/package-boundary.test.ts) is the guard.
 4. Replace only the selected profile's owned directory. Preserve sibling files
    beneath the issue-key directory.
 5. Reject unsafe manifest paths and profile symlinks.
 6. Preserve attachment-origin validation and collision-safe ID-prefixed names.
-7. Preserve partial-result semantics: completed issues remain available when a
-   different issue fails.
-8. Preserve deterministic bytes: trim trailing whitespace and write one final
-   newline.
-
-## Change map
-
-| Change | Start here | Required proof |
-| --- | --- | --- |
-| CLI flag or exit behavior | `src/cli/main.ts` | `test/jira/cli.test.ts`, schema and README when public output changes |
-| Jira field, pagination, or ADF conversion | `src/jira/` | focused Jira adapter test with fake transport |
-| Receipt or partial-result behavior | `src/runner/run-export.ts` | `test/core/run-export.test.ts` |
-| Rendering or attachment storage | `src/output/profile-writer.ts` | `test/core/generic-profile-writer.test.ts` |
-| Manifest or template model | `src/output/` and `schemas/output-profile.schema.json` | `test/core/output-profile.test.ts` and profile guide |
-| Built-in generic presentation | `profiles/generic-v1/` | exact observable output assertion |
-| Public package contents | `package.json` | `test/core/package-boundary.test.ts` and `pnpm release:check` |
-
-Do not add a consumer adapter, workflow, task lifecycle, or consumer-owned
-template to this repository. Consumers integrate through `--template-dir`,
-the generated tree, and the JSON receipt.
+7. Preserve partial results: completed issues remain available when another fails.
+8. Preserve deterministic bytes: trim trailing whitespace and write one final newline.
 
 ## Verification
 
-After a change:
+Run `pnpm check` after a change and `pnpm release:check` before a release
+candidate. For documentation or architecture changes, also run the
+[architecture and link checks](docs/maintenance.md#verification).
 
-```sh
-pnpm check
-```
-
-Before a release candidate:
-
-```sh
-pnpm release:check
-```
-
-Never edit or commit `dist/` or `node_modules/`. Never commit credentials or
-downloaded Jira data. Read `test/AGENTS.md` before changing tests and
-`profiles/AGENTS.md` before changing the built-in profile.
+Never edit or commit generated `dist/`, `node_modules/`, credentials, or
+downloaded Jira data.

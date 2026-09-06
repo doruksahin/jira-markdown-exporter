@@ -1,19 +1,19 @@
 # Source Code Guide
 
-Read the root `AGENTS.md` first. This file narrows its rules to `src/`.
+Read the root [agent guide](../AGENTS.md) first. This file narrows its rules to `src/`.
 
 ## Layer ownership
 
-- `domain/` contains normalized snapshots and result types, never raw Jira
+- [domain/](domain/) contains normalized snapshots and result types, never raw Jira
   responses.
-- `ports/` defines the narrow reader boundary: search issue keys, fetch an
+- [ports/](ports/) defines the narrow reader boundary: search issue keys, fetch an
   issue, and download an attachment.
-- `jira/` contains GET-only Jira adapters, pagination, ADF conversion, and
+- [jira/](jira/) contains GET-only Jira adapters, pagination, ADF conversion, and
   attachment-origin policy.
-- `output/` loads safe profiles, builds a credential-free template model, and
+- [output/](output/) loads safe profiles, builds a credential-free template model, and
   atomically replaces one profile-owned directory.
-- `runner/` coordinates selection, fetching, rendering, and per-issue results.
-- `cli/` translates arguments, environment configuration, receipts, and exit
+- [runner/](runner/) coordinates selection, fetching, rendering, and per-issue results.
+- [cli/](cli/) translates arguments, environment configuration, receipts, and exit
   codes. It must not contain Jira fetching or rendering logic.
 
 Keep dependencies pointing inward:
@@ -32,7 +32,7 @@ into the output layer.
 ## Sensitive boundaries
 
 - `contentUrl` exists only so the attachment adapter can download bytes. Keep
-  it out of `template-model.ts`, receipts, logs, and generated Markdown.
+  it out of [template model](output/template-model.ts), receipts, logs, and generated Markdown.
 - `localizeInlineMedia` gives attachment-ID references precedence and leaves
   ambiguous filename-only links unchanged.
 - Attachment binary requests must retain exact-origin validation and must not
@@ -47,17 +47,17 @@ into the output layer.
 
 Any receipt field change requires coordinated updates to:
 
-- `domain/export-result.ts`
-- `schemas/export-receipt.schema.json`
-- runner and CLI tests
-- `README.md`
+- [export result](domain/export-result.ts)
+- [receipt schema](../schemas/export-receipt.schema.json)
+- [runner](../test/core/run-export.test.ts) and [CLI tests](../test/jira/cli.test.ts)
+- [README](../README.md)
 
 Any profile contract change requires coordinated updates to:
 
-- `output/output-profile.ts`
-- `schemas/output-profile.schema.json`
-- `docs/output-profiles.md`
-- focused profile tests
+- [profile model](output/output-profile.ts)
+- [profile schema](../schemas/output-profile.schema.json)
+- [profile contract](../docs/output-profiles.md)
+- [profile tests](../test/core/output-profile.test.ts)
 
 After runtime changes, run `pnpm check`. Do not edit or commit generated
 `dist/`; `prepack` rebuilds it.

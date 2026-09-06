@@ -8,5 +8,6 @@
 | SPEC-01M1H1RXRVZFJ1GBPP39EKA2XR | Consumer-Neutral Jira Export and ADC Publication | approved | 2026-09-02 |
 | SPEC-01KZR6678KTM854EJTMBJZ2GQJ | Implement standalone Jira Markdown Exporter v1 | implemented | 2026-08-11 |
 | SPEC-01M0AM89HG8P9AK0DS0EX9NZ1H | Injected Read-Only Transport for Embedded Jira Export | implemented | 2026-08-18 |
+| SPEC-01M1V30630WPBW8N8R11WBX08Q | Progressive Architecture Documentation and Link Checks | implemented | 2026-09-06 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->
