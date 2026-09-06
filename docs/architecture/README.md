@@ -104,6 +104,12 @@ The implemented consumer-neutral extraction and its verification scope are
 recorded in
 [SPEC-01M1H1RXRVZFJ1GBPP39EKA2XR](../../decree/spec/exporter/spec-01m1h1rxrvzfj1gbpp39eka2xr-consumer-neutral-jira-export-and-adc-publication.md).
 
+The standalone
+[Jira-to-packet producer](https://github.com/doruksahin/jira-to-packet/blob/main/docs/architecture/README.md)
+owns packet orchestration and templates extracted from AC-walkthrough. It
+consumes this exporter's public interfaces; the independently deferred Jira
+read-facade work below remains separate.
+
 ## Planned changes
 
 Future only: the broader Jira producer/read facade may be extracted from this
@@ -112,11 +118,6 @@ No such extraction is implemented by this architecture adoption; the current
 exports and ownership remain unchanged. The existing deferred item is recorded
 under
 [SPEC-01M1H1RXRVZFJ1GBPP39EKA2XR](../../decree/spec/exporter/spec-01m1h1rxrvzfj1gbpp39eka2xr-consumer-neutral-jira-export-and-adc-publication.md#deferred-v2).
-
-Separately, the shared model's planned `jira-to-packet` extraction moves
-AC-owned orchestration and templates into a separate producer repository; it
-does not extract exporter implementation or perform the independently deferred
-Jira read-facade work described above.
 
 ## Decisions
 
