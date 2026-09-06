@@ -118,8 +118,10 @@ under
 ## Verification
 
 `python3 .architecture/check.py` validates this repository's architecture
-contract and internal-package allowlist. `pnpm check` runs typechecking and the
-behavior suite. Tests use fake Jira readers/transports and temporary files:
-`test/jira` covers CLI and Jira adapter relationships, while `test/core`
-covers library, runner, schema, profile writer, and package-boundary behavior.
-No test relationship requires a live Jira site or a consumer repository.
+contract and internal-package allowlist. Its immutable owner commit and byte
+hash are recorded in [`.architecture/SOURCE.md`](../../.architecture/SOURCE.md).
+`pnpm check` runs typechecking and the behavior suite. Tests use fake Jira
+readers/transports and temporary files: `test/jira` covers CLI and Jira adapter
+relationships, while `test/core` covers library, runner, schema, profile
+writer, and package-boundary behavior. No test relationship requires a live
+Jira site or a consumer repository.
