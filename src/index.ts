@@ -89,6 +89,7 @@ export type {
 export type { BoardIssueReader } from './ports/board-issue-reader.js';
 export { createJiraReadApi } from './jira/jira-read-api.js';
 export type {
+  JiraBoardLayout,
   JiraBoardRecord,
   JiraFieldRecord,
   JiraIssueEvidence,

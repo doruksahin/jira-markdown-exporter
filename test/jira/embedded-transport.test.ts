@@ -17,6 +17,24 @@ const temporaryDirectories: string[] = [];
 afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
 
 describe('embedded transport boundary', () => {
+  it('retains status identity in direct issue and task evidence reads, without inventing a missing ID', async () => {
+    const issue = rawIssue('PROJ-1', 'One');
+    const api = createJiraReadApi(embeddedConfig, { jiraGet: async () => response(issue) });
+    await expect(api.getIssue({ issueKey: 'PROJ-1', storyPointsField: 'customfield_2' })).resolves.toMatchObject({
+      statusId: '10001', status: 'In Progress', statusCategory: 'indeterminate',
+    });
+    await expect(api.getTaskRecordEvidence({
+      issueKey: 'PROJ-1', storyPointsField: 'customfield_2', sprintField: 'customfield_3',
+    })).resolves.toMatchObject({ issue: { statusId: '10001' } });
+
+    const withoutStatusId = createJiraReadApi(embeddedConfig, { jiraGet: async () => response({
+      ...issue, fields: { ...issue.fields, status: { name: 'QA Test' } },
+    }) });
+    await expect(withoutStatusId.getIssue({ issueKey: 'PROJ-1', storyPointsField: 'customfield_2' })).resolves.toMatchObject({
+      statusId: '', status: 'QA Test',
+    });
+  });
+
   it('owns endpoint generation, pagination, JQL, and issue normalization', async () => {
     const urls: URL[] = [];
     const transport: JiraGetTransport = async (request) => {
@@ -53,7 +71,7 @@ describe('embedded transport boundary', () => {
       orderByUpdatedDesc: true,
       storyPointsField: 'customfield_2',
     });
-    expect(issues).toMatchObject({ total: 2, issues: [{ key: 'ATT-1', summary: 'One', description: 'Plain text', storyPoints: '3' }, { key: 'ATT-2', summary: 'Two' }] });
+    expect(issues).toMatchObject({ total: 2, issues: [{ key: 'ATT-1', summary: 'One', description: 'Plain text', storyPoints: '3', statusId: '10001' }, { key: 'ATT-2', summary: 'Two', statusId: '10001' }] });
     const issueUrls = urls.filter((url) => url.pathname.endsWith('/issue'));
     expect(issueUrls).toHaveLength(2);
     expect(issueUrls[0]?.searchParams.get('jql')).toBe('project = "ATT" AND assignee = "acct-1" AND resolution = Unresolved ORDER BY updated DESC');
@@ -76,7 +94,7 @@ describe('embedded transport boundary', () => {
       unresolvedOnly: true,
       orderByUpdatedDesc: true,
       storyPointsField: 'customfield_2',
-    })).resolves.toMatchObject({ total: 2, issues: [{ key: 'PROJ-1' }, { key: 'PROJ-2' }] });
+    })).resolves.toMatchObject({ total: 2, issues: [{ key: 'PROJ-1', statusId: '10001' }, { key: 'PROJ-2', statusId: '10001' }] });
     expect(urls.map((url) => url.pathname)).toEqual(['/rest/api/3/search/jql', '/rest/api/3/search/jql']);
     expect(urls[0]?.searchParams.get('jql')).toBe(
       'project = "PROJ" AND assignee = "acct-1" AND resolution = Unresolved ORDER BY updated DESC',
@@ -103,7 +121,7 @@ describe('embedded transport boundary', () => {
       projectKey: 'PROJ',
       assigneeAccountId: 'acct-1',
       storyPointsField: 'customfield_2',
-    })).resolves.toMatchObject({ total: 2, issues: [{ key: 'PROJ-1' }, { key: 'PROJ-2' }] });
+    })).resolves.toMatchObject({ total: 2, issues: [{ key: 'PROJ-1', statusId: '10001' }, { key: 'PROJ-2', statusId: '10001' }] });
     expect(jqls).toEqual([
       'project = "PROJ" AND assignee = "acct-1"',
       'project = "PROJ" AND sprint = 42',
@@ -204,7 +222,7 @@ function rawIssue(key: string, summary: string, parentKey = 'PROJ-0') {
     id: key.replace(/\D/g, '') || '1', key, fields: {
       summary,
       description: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Plain text' }] }] },
-      status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+      status: { id: '10001', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
       priority: { name: 'High' }, issuetype: { name: 'Task' }, updated: '2026-08-18T10:00:00Z',
       assignee: { accountId: 'acct-1', displayName: 'Person', active: true }, comment: { total: 2 },
       parent: { key: parentKey }, labels: ['one'], customfield_2: 3,

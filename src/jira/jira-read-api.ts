@@ -31,6 +31,15 @@ export interface JiraBoardRecord {
   readonly type: string;
 }
 
+export interface JiraBoardLayout {
+  readonly id: string;
+  readonly name: string;
+  readonly columns: readonly Readonly<{
+    name: string;
+    statusIds: readonly string[];
+  }>[];
+}
+
 export interface JiraFieldRecord {
   readonly id: string;
   readonly name: string;
@@ -52,6 +61,7 @@ export interface JiraIssueRecord {
   readonly url: string;
   readonly summary: string;
   readonly description: string;
+  readonly statusId: string;
   readonly status: string;
   readonly statusCategory: string;
   readonly priority: string;
@@ -81,6 +91,7 @@ export interface JiraReadApi {
   probeMyself(): Promise<JiraUserRecord>;
   probeProject(projectKey: string): Promise<JiraProjectRecord>;
   probeBoard(boardId: string | number): Promise<JiraBoardRecord>;
+  readBoardLayout(boardId: string | number): Promise<JiraBoardLayout>;
   findAssignableUser(input: Readonly<{ projectKey: string; accountId: string }>): Promise<JiraUserRecord | null>;
   listFields(): Promise<readonly JiraFieldRecord[]>;
   getIssue(input: Readonly<{
@@ -151,6 +162,12 @@ class JiraTransportReadApi implements JiraReadApi {
     const id = jiraNumericId(boardId, 'board');
     const board = await jiraGetJson(this.config, this.transport, 'jira-board', `/rest/agile/1.0/board/${id}`) as AgileModels.GetBoard;
     return Object.freeze({ id: String(board.id ?? id), name: String(board.name || ''), type: String(board.type || '') });
+  }
+
+  async readBoardLayout(boardId: string | number): Promise<JiraBoardLayout> {
+    const id = jiraNumericId(boardId, 'board');
+    const layout = await jiraGetJson(this.config, this.transport, 'jira-board-layout', `/rest/agile/1.0/board/${id}/configuration`);
+    return normalizeBoardLayout(layout, String(id));
   }
 
   async findAssignableUser(input: Readonly<{ projectKey: string; accountId: string }>): Promise<JiraUserRecord | null> {
@@ -365,6 +382,32 @@ function normalizeUser(user: Partial<Version3Models.User> | null | undefined): J
   });
 }
 
+function normalizeBoardLayout(value: unknown, expectedId: string): JiraBoardLayout {
+  const layout = record(value);
+  const columns = record(layout.columnConfig).columns;
+  const invalid = () => new ExporterTransportError('JIRA_TRANSPORT_INVALID_RESPONSE', 'jira-board-layout');
+  if ((typeof layout.id !== 'number' && typeof layout.id !== 'string') || String(layout.id) !== expectedId
+    || typeof layout.name !== 'string' || !layout.name.trim()
+    || !Array.isArray(columns) || !columns.length) {
+    throw invalid();
+  }
+  const seenStatusIds = new Set<string>();
+  const normalizedColumns = columns.map((value) => {
+    const column = record(value);
+    if (typeof column.name !== 'string' || !column.name.trim() || !Array.isArray(column.statuses)) {
+      throw invalid();
+    }
+    const statusIds = column.statuses.map((value) => {
+      const id = record(value).id;
+      if (typeof id !== 'string' || !/^[1-9]\d*$/.test(id) || seenStatusIds.has(id)) throw invalid();
+      seenStatusIds.add(id);
+      return id;
+    });
+    return Object.freeze({ name: column.name, statusIds: Object.freeze(statusIds) });
+  });
+  return Object.freeze({ id: expectedId, name: layout.name, columns: Object.freeze(normalizedColumns) });
+}
+
 function normalizeSprint(sprint: AgileModels.Sprint): JiraSprintRecord {
   const state = ['future', 'active', 'closed'].includes(String(sprint.state))
     ? sprint.state as JiraSprintRecord['state'] : 'unknown';
@@ -406,6 +449,7 @@ function normalizeIssue(
     url: `${jiraOrigin}/browse/${String(issue.key || '')}`,
     summary: String(fields.summary || 'Untitled issue'),
     description: adfToPlainText(fields.description),
+    statusId: String(status.id ?? ''),
     status: String(status.name || 'Unknown'),
     statusCategory: String(statusCategory.key || ''),
     priority: String(priority.name || ''),
