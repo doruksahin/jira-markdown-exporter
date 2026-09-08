@@ -149,6 +149,36 @@ retention, and publishing the output. See [Stateless server operation](docs/serv
 for the complete artifact-build, checksum, installation, execution, and
 verification playbook.
 
+## Read board configuration as a library
+
+Both public entrypoints export `createJiraReadApi`. The caller supplies a Jira
+host and an authenticated JSON GET transport; endpoint construction and
+normalization stay inside the package. No native network fallback or cache is
+used by this API.
+
+```ts
+import { createJiraReadApi } from '@doruksahin/jira-markdown-exporter/embedded';
+
+const jira = createJiraReadApi({ host: jiraHost }, { jiraGet });
+const layout = await jira.readBoardLayout(boardId);
+// layout: { id, name, columns: [{ name, statusIds }] }
+```
+
+`readBoardLayout` reads the board configuration and returns deeply frozen
+`JiraBoardLayout` data, preserving Jira's column order, names, status ID order,
+and columns with no statuses. The response must identify the requested board,
+contain at least one named column, and use nonempty decimal string status IDs.
+Malformed data or repeated status IDs (within or across columns) reject with
+`JIRA_TRANSPORT_INVALID_RESPONSE`, operation `jira-board-layout`. Transport
+failures retain bounded error codes and HTTP status, including permission
+failures; response bodies are excluded.
+
+All `JiraIssueRecord` reads retain `fields.status.id` as `statusId` alongside
+the existing status name and category. A missing ID becomes an empty string.
+Consumers own issue selection, joining IDs to columns, unmapped-issue behavior,
+refresh policy, and presentation. Board configuration is independent of
+Markdown snapshot export and does not change its files or receipt.
+
 ## Use an external output profile
 
 Use `--template-dir` when a consuming repository owns its Markdown layout:

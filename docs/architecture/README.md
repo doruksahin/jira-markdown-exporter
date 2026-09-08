@@ -34,6 +34,12 @@ interfaces belong to callers. The accepted boundary decision is
   enters at [`src/embedded.ts`](../../src/embedded.ts). The caller supplies a
   Jira JSON GET transport and, when attachments are enabled, a byte GET
   transport; it has no native network fallback.
+- **Jira read facade:** both library entrypoints export
+  [`createJiraReadApi`](../../src/jira/jira-read-api.ts). It owns normalized
+  issue records with status IDs and ordered board configuration through
+  `readBoardLayout`. Callers own grouping, refresh, storage, and UI. The
+  [board read contract](../../README.md#read-board-configuration-as-a-library)
+  documents validation and immutable return values.
 - **File exchange:** the CLI can read UTF-8 JQL from `--jql-file` and a local
   profile from `--template-dir`. It writes only
   `<output-dir>/<issue-key>/<profile.ownedDirectory>` plus an optional receipt
@@ -84,6 +90,11 @@ Attachment download failures become bounded per-issue warnings when rendering
 can continue. Credentials and attachment content URLs are excluded from the
 template model and intentional receipt fields.
 
+Board configuration reads reject malformed data or repeated status membership
+with a fixed `JIRA_TRANSPORT_INVALID_RESPONSE` error and `jira-board-layout`
+operation. HTTP failures preserve bounded status facts. The facade supplies no
+fallback columns; consumer presentation remains outside this package.
+
 The exact completed-result shape belongs to the
 [export receipt schema](../../schemas/export-receipt.schema.json); transport
 and embedded-runtime failure constraints belong to
@@ -109,6 +120,12 @@ The standalone
 owns packet orchestration and templates extracted from AC-walkthrough. It
 consumes this exporter's public interfaces; the independently deferred Jira
 read-facade work below remains separate.
+
+The [board-layout tests](../../test/jira/board-layout.test.ts) exercise both
+public library entrypoints against injected synthetic Jira responses, including
+ordered empty columns, ambiguous mappings, and bounded failures. The
+[embedded transport tests](../../test/jira/embedded-transport.test.ts) cover
+status identity across all issue read paths and the transport boundary.
 
 ## Planned changes
 

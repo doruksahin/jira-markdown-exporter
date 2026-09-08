@@ -48,6 +48,7 @@ export type { JiraConfig } from './config/jira-config.js';
 export type { ExportResult, ExportedIssueFailure, ExportedIssueResult, ExportStatus } from './domain/export-result.js';
 export type { OutputProfile, OutputProfileManifest } from './output/output-profile.js';
 export type {
+  JiraBoardLayout,
   JiraBoardRecord,
   JiraFieldRecord,
   JiraIssueEvidence,

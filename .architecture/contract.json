@@ -13,10 +13,13 @@
     "src/domain/board-snapshot.ts",
     "src/ports/board-issue-reader.ts",
     "src/jira/jira-read-api.ts",
+    "src/transport.ts",
     "src/runner/run-export.ts",
     "src/output/profile-writer.ts",
     "schemas/export-receipt.schema.json",
-    "test/core/package-boundary.test.ts"
+    "test/core/package-boundary.test.ts",
+    "test/jira/board-layout.test.ts",
+    "test/jira/embedded-transport.test.ts"
   ],
   "dependencyChecks": [
     {

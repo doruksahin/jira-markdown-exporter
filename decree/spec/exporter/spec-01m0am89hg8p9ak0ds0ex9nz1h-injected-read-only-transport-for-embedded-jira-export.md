@@ -75,6 +75,22 @@ project-and-assignee JQL, the standard issue field set, plain-text ADF and
 assignee/sprint normalization. Callers supply only stable team identifiers and
 tracked custom-field IDs. The Node entrypoint retains `jira.js` for CLI parity.
 
+The additive board-layout read extends this same facade with
+`readBoardLayout(boardId)`, backed by the injected GET transport and Jira's
+board configuration endpoint. Both public entrypoints export the consumer-neutral
+`JiraBoardLayout` type. It contains only the board ID, name, and ordered columns
+with status IDs; return values are deeply frozen. Layout normalization rejects
+missing or malformed fields, a mismatched board ID, an empty column list, and
+duplicate status membership. Empty individual columns remain valid. Failure
+uses existing bounded transport error codes with operation `jira-board-layout`.
+
+All normalized `JiraIssueRecord` results preserve `fields.status.id` as
+`statusId`, using an empty string when Jira omits it. Callers own issue grouping,
+unmapped presentation, and caching. This read does not alter snapshot output,
+receipts, attachment behavior, or the deferred package-extraction decision.
+The maintained public contract is
+[Read board configuration as a library](../../../README.md#read-board-configuration-as-a-library).
+
 ### Attachment adapter
 
 `JiraBoardIssueReader` invokes a narrow attachment GET callback with the

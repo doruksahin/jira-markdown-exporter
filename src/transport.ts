@@ -58,6 +58,7 @@ export type ExporterTransportOperation =
   | 'jira-myself'
   | 'jira-project'
   | 'jira-board'
+  | 'jira-board-layout'
   | 'jira-assignee'
   | 'jira-fields'
   | 'jira-board-sprints'

@@ -9,6 +9,7 @@ interface boundaries. This page routes a change to its implementation and proof.
 | --- | --- | --- |
 | CLI flag or exit behavior | [CLI](../src/cli/main.ts) | [CLI tests](../test/jira/cli.test.ts), [receipt schema](../schemas/export-receipt.schema.json) and [README](../README.md) when public output changes |
 | Jira field, pagination, or ADF conversion | [Jira adapters](../src/jira/) | [Jira reader tests](../test/jira/jira-board-issue-reader.test.ts) with fake transport |
+| Board configuration or normalized issue read contract | [Jira read facade](../src/jira/jira-read-api.ts) | [Public board-layout tests](../test/jira/board-layout.test.ts), [embedded transport tests](../test/jira/embedded-transport.test.ts), and [library contract](../README.md#read-board-configuration-as-a-library) |
 | Receipt or partial-result behavior | [Export runner](../src/runner/run-export.ts) | [Runner tests](../test/core/run-export.test.ts) |
 | Rendering or attachment storage | [Profile writer](../src/output/profile-writer.ts) | [Writer tests](../test/core/generic-profile-writer.test.ts) |
 | Manifest or template model | [Output layer](../src/output/) and [profile schema](../schemas/output-profile.schema.json) | [Profile tests](../test/core/output-profile.test.ts) and [profile contract](output-profiles.md) |
