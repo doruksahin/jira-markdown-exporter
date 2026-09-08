@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.5.0...v0.6.0) (2026-09-08)
+
+
+### Features
+
+* **jira:** expose ordered board layout and issue status IDs ([#14](https://github.com/doruksahin/jira-markdown-exporter/issues/14)) ([e44673b](https://github.com/doruksahin/jira-markdown-exporter/commit/e44673bf506ee9c8c0af768bbd46484ca6794de4))
+
 ## [0.5.0](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.4.1...v0.5.0) (2026-09-03)
 
 
