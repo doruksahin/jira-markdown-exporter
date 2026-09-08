@@ -51,6 +51,7 @@
     "test": "pnpm build && vitest run --exclude test/release-artifact.test.ts && vitest run test/release-artifact.test.ts",
     "check": "pnpm typecheck && pnpm test",
     "export": "tsx src/cli/main.ts",
+    "demo": "pnpm build && node examples/offline-demo.mjs",
     "prepack": "pnpm build",
     "release:artifact": "node scripts/build-release-artifact.mjs",
     "release:smoke-install": "node scripts/smoke-installed-artifact.mjs",
