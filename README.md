@@ -123,6 +123,81 @@ as a runner input. Exactly one of `--issue-keys`, `--jql`, and `--jql-file` is
 required. `--output-dir` is also required. `generic-v1` is the default, so its
 `--profile` flag may be omitted.
 
+## Try an offline demo
+
+From a source checkout with dependencies installed:
+
+```sh
+pnpm demo
+```
+
+This builds the package and exports a synthetic `DEMO-1` task through the public
+library API with the built-in `generic-v1` profile. No Jira credentials or network
+requests are used. The demo prints the generated `issue.md` and leaves all four
+Markdown files and a validated JSON receipt in a fresh temporary directory for
+inspection. The operating system chooses the temporary root; paths vary per run.
+
+Example output, omitting build output and the Markdown preview:
+
+```text
+Offline demo: synthetic data; no Jira requests.
+Run directory: /tmp/jira-exporter-demo-ABC123
+Demo export success: 1/1 synced, 0 failed
+- DEMO-1: synced · /tmp/jira-exporter-demo-ABC123/output/DEMO-1/jira-snapshot
+Receipt: /tmp/jira-exporter-demo-ABC123/export-receipt.json
+```
+
+Use `pnpm demo --partial` to simulate a second issue failing. It retains the
+successful issue's Markdown, records the failure in the receipt, and exits `2`:
+
+```text
+Demo export partial: 1/2 synced, 1 failed
+- DEMO-1: synced · /tmp/jira-exporter-demo-ABC123/output/DEMO-1/jira-snapshot
+- DEMO-404: failed · Synthetic failure: issue unavailable
+```
+
+The demo uses an injected reader with already-normalized data. It demonstrates
+rendering and receipt behavior; it does not verify CLI parsing, Jira authentication,
+pagination, ADF conversion, or attachment downloads. The example is source-checkout
+tooling and is not included in the npm package.
+
+## Try one real issue and capture its run output
+
+With `JIRA_HOST`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` already injected into your
+environment, run this from the source checkout. Replace `PROJ-123` with an issue
+you can read:
+
+```sh
+pnpm build
+export_demo_root="$(mktemp -d)"
+if node dist/cli/main.js \
+  --issue-keys PROJ-123 \
+  --output-dir "$export_demo_root/output" \
+  --receipt "$export_demo_root/export-receipt.json" \
+  > "$export_demo_root/stdout.log" \
+  2> "$export_demo_root/stderr.log"
+then
+  export_demo_status=0
+else
+  export_demo_status=$?
+fi
+cat "$export_demo_root/stdout.log" "$export_demo_root/stderr.log"
+printf 'Exit: %s\nRun directory: %s\n' "$export_demo_status" "$export_demo_root"
+```
+
+A successful CLI run prints the following final summary (paths vary):
+
+```text
+Jira export success: 1/1 synced, 0 failed
+- PROJ-123: synced · /tmp/example/output/PROJ-123/jira-snapshot
+```
+
+The receipt records counts, provenance, paths, warnings, and failures. `stdout.log`
+and `stderr.log` are captured by the shell in this example; the exporter does not
+create log files or retain run history automatically. Output is a final result,
+not live progress. Each attempt gets its own directory so previous receipts and
+logs remain available. Keep real Jira output and receipts out of source control.
+
 ## Run as a stateless server job
 
 The exporter is a one-shot process. It receives credentials from the
@@ -319,8 +394,8 @@ whose status is `synced`.
 - Issues are written independently, so one failed issue does not roll back a
   completed issue.
 - Generated Markdown has stable whitespace and one final newline.
-- Progress and human-readable output go to stdout only when `--json` is not
-  selected; JSON mode is suitable for process composition.
+- Final human-readable results go to stdout when `--json` is not selected;
+  JSON mode emits the machine result instead. The CLI does not emit live progress.
 
 ## Troubleshooting
 
