@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "enabledManagers": [
+    "npm"
+  ],
+  "includePaths": [
+    "package.json",
+    "pnpm-lock.yaml"
+  ],
+  "dependencyDashboard": true,
+  "timezone": "Etc/UTC",
+  "schedule": [
+    "* 6-9 * * 1"
+  ],
+  "prConcurrentLimit": 2,
+  "prHourlyLimit": 2,
+  "automerge": false,
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "* 6-9 * * 1"
+    ],
+    "dependencyDashboardApproval": true
+  },
+  "packageRules": [
+    {
+      "description": "Batch routine non-breaking runtime updates.",
+      "matchDepTypes": [
+        "dependencies",
+        "project.dependencies"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "runtime dependencies"
+    },
+    {
+      "description": "Batch routine non-breaking development updates.",
+      "matchDepTypes": [
+        "devDependencies",
+        "dependency-groups",
+        "build-system.requires"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "development dependencies"
+    },
+    {
+      "description": "Review each major version separately before creating its PR.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": null,
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Pre-1.0 minor changes may break compatibility; review each dependency separately.",
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "groupName": null,
+      "dependencyDashboardApproval": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": [
+      "at any time"
+    ],
+    "dependencyDashboardApproval": false,
+    "groupName": null
+  },
+  "prBodyNotes": [
+    "Run the repository checks on the updated manifest and lockfile before merging. Workspace source pins do not change the installed dependency versions."
+  ]
+}
