@@ -68,6 +68,14 @@
       ],
       "groupName": null,
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Minimum supported runtimes are owner compatibility policy, not dependency pins.",
+      "matchDepTypes": [
+        "engines",
+        "requires-python"
+      ],
+      "enabled": false
     }
   ],
   "vulnerabilityAlerts": {
