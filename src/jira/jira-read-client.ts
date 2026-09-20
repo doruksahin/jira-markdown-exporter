@@ -18,6 +18,8 @@ import {
  * included here because they use the separately guarded native-fetch path.
  */
 export interface JiraReadClient {
+  getDevelopmentSummary?(issueId: string): Promise<unknown>;
+  getDevelopmentDetail?(issueId: string, applicationType: string, dataType: 'branch' | 'pullrequest'): Promise<unknown>;
   searchIssues(parameters: Version3Parameters.SearchForIssuesUsingJqlEnhancedSearch): Promise<Version3Models.SearchAndReconcileResults>;
   getIssue(parameters: Version3Parameters.GetIssue): Promise<Version3Models.Issue>;
   getComments(parameters: Version3Parameters.GetComments): Promise<Version3Models.PageOfComments>;
@@ -41,6 +43,18 @@ export class JiraSdkReadClient implements JiraReadClient {
 
   async getComments(parameters: Version3Parameters.GetComments): Promise<Version3Models.PageOfComments> {
     return this.perform('jira-comments', () => this.client.issueComments.getComments(parameters));
+  }
+
+  getDevelopmentSummary(issueId: string): Promise<unknown> {
+    return this.perform('jira-development', () => this.client.sendRequest({
+      method: 'GET', url: '/rest/dev-status/latest/issue/summary', params: { issueId },
+    }, undefined as never));
+  }
+
+  getDevelopmentDetail(issueId: string, applicationType: string, dataType: 'branch' | 'pullrequest'): Promise<unknown> {
+    return this.perform('jira-development', () => this.client.sendRequest({
+      method: 'GET', url: '/rest/dev-status/latest/issue/detail', params: { issueId, applicationType, dataType },
+    }, undefined as never));
   }
 
   private async perform<T>(operation: ExporterTransportOperation, request: () => Promise<T>): Promise<T> {

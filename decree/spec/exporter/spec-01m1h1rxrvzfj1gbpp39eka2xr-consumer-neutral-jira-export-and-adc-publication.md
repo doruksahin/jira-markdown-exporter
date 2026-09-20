@@ -221,3 +221,10 @@ publication composition without committing its output.
   records.
 - [ ] Add scheduled execution, automated commits or pull requests, containers,
   or a hosted process after operational need is demonstrated.
+
+## Development metadata review — 2026-09-20
+
+Reviewed against the current reader, profile model and writer. Their GET-only,
+consumer-neutral ownership remains applicable. The additive development metadata
+extension follows [SPEC-01M2Z096B7XWDNBY2CSECG8JTZ](spec-01m2z096b7xwdnby2csecg8jtz-read-jira-development-branches-and-pull-requests.md).
+Historical results and pending release evidence above are unchanged.

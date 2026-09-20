@@ -55,6 +55,7 @@ export type ExporterTransportOperation =
   | 'jira-search'
   | 'jira-issue'
   | 'jira-comments'
+  | 'jira-development'
   | 'jira-myself'
   | 'jira-project'
   | 'jira-board'

@@ -1,3 +1,4 @@
+import { readJiraDevelopment } from './jira-development.js';
 import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueLinkSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
 import type { BoardIssueReader } from '../ports/board-issue-reader.js';
 import type { JiraConfig } from '../config/jira-config.js';
@@ -48,7 +49,10 @@ export class JiraBoardIssueReader implements BoardIssueReader {
       this.client.getIssue({ issueIdOrKey: issueKey, fields: ISSUE_FIELDS }),
       this.fetchAllComments(issueKey),
     ]);
-    return convertBoardIssue(issue, comments, this.config.host);
+    return {
+      ...convertBoardIssue(issue, comments, this.config.host),
+      development: await readJiraDevelopment(this.client, issue.id),
+    };
   }
 
   async downloadAttachment(attachment: BoardAttachmentSnapshot): Promise<Uint8Array> {

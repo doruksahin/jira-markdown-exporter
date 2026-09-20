@@ -458,3 +458,17 @@ manually.
 See [the release playbook](https://github.com/doruksahin/jira-markdown-exporter/blob/main/docs/releasing.md)
 for the exact merge, verification, artifact-download, checksum, installation,
 and recovery commands.
+
+## Development information
+
+Issue exports include linked branches and pull requests in the built-in issue
+note. External profiles can use the [development template model](docs/output-profiles.md#template-model).
+Both the Node and embedded exporter read the numeric issue ID, discover providers
+from Jira development summary, then fetch branch and pull-request details. All reads
+use the configured Jira GET transport and existing authentication.
+
+These are [internal Jira Cloud endpoints](https://jira.atlassian.com/browse/JSWCLOUD-16901),
+not a stable public API. Missing permissions, malformed responses, or unavailable
+providers produce bounded warnings and an explicit unavailable/partial state, while
+issue and comment export continues. A source branch reported on a PR remains on
+that PR; no workflow stage or canonical working branch is inferred.

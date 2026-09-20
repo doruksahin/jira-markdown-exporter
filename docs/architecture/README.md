@@ -87,7 +87,12 @@ Input and preflight failures return exit status `1` from the CLI. Completed
 multi-issue runs preserve successful issue output: all-success returns `0`, a
 partial result returns `2`, and a run with no exported issue returns `1`.
 Attachment download failures become bounded per-issue warnings when rendering
-can continue. Credentials and attachment content URLs are excluded from the
+can continue. Development metadata reads are isolated in
+[the development adapter](../../src/jira/jira-development.ts), using summary-discovered
+provider details through both existing GET transports. Unavailable or malformed
+responses become bounded warnings and explicit partial/unavailable snapshot data;
+the issue export still succeeds. The [development specification](../../decree/spec/exporter/spec-01m2z096b7xwdnby2csecg8jtz-read-jira-development-branches-and-pull-requests.md)
+records this additive behavior. Credentials and attachment content URLs are excluded from the
 template model and intentional receipt fields.
 
 Board configuration reads reject malformed data or repeated status membership

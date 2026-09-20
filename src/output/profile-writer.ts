@@ -47,12 +47,13 @@ export async function writeOutputProfileSnapshot(
         options.downloadAttachments === true,
       ),
     };
+    const warnings = [...attachments.warnings, ...(issue.development?.warnings ?? [])];
     const model = createExportTemplateModel(
       localizedIssue,
       attachments.localPaths,
       attachments.downloaded,
       options.downloadAttachments === true,
-      attachments.warnings,
+      warnings,
     );
     const rendered = await renderProfile(profile, model);
     await Promise.all(rendered.map(async ({ output, content }) => {
@@ -65,7 +66,7 @@ export async function writeOutputProfileSnapshot(
       issueDir,
       files: rendered.map(({ output }) => join(issueDir, output)),
       downloadedAttachments: attachments.downloaded,
-      warnings: attachments.warnings,
+      warnings,
     };
   } catch (error) {
     await rm(stagingDir, { recursive: true, force: true });

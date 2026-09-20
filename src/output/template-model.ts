@@ -1,6 +1,7 @@
-import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueLinkSnapshot, BoardIssueSnapshot } from '../domain/board-snapshot.js';
+import type { BoardAttachmentSnapshot, BoardCommentSnapshot, BoardIssueLinkSnapshot, BoardIssueSnapshot, IssueDevelopment } from '../domain/board-snapshot.js';
 
 export interface ExportTemplateModel {
+  readonly development: IssueDevelopment;
   readonly issue: {
     readonly key: string;
     readonly url: string;
@@ -37,6 +38,7 @@ export function createExportTemplateModel(
   warnings: readonly string[],
 ): ExportTemplateModel {
   return {
+    development: issue.development ?? { status: 'unavailable', branches: [], pullRequests: [], warnings: ['Development information was not supplied by the issue reader.'] },
     issue: {
       key: issue.key,
       url: issue.url,

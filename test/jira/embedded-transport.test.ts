@@ -9,6 +9,7 @@ import {
   type JiraGetTransport,
   type OutputProfile,
 } from '../../src/embedded.js';
+import { exportJiraMarkdown as exportRootJiraMarkdown } from '../../src/index.js';
 import { assertJiraGetOnly, JiraSdkReadClient } from '../../src/jira/jira-read-client.js';
 
 const config = { host: 'https://acme.atlassian.net', email: 'person@example.test', apiToken: 'test-only-token' };
@@ -17,6 +18,39 @@ const temporaryDirectories: string[] = [];
 afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
 
 describe('embedded transport boundary', () => {
+  it.each(['embedded', 'root'] as const)('%s export uses the numeric issue ID for development reads and retains permission warnings in the receipt', async (entrypoint) => {
+    const outputDir = await temporaryDirectory();
+    const developmentUrls: URL[] = [];
+    const jiraGet: JiraGetTransport = async ({ url }) => {
+      const request = new URL(url);
+      if (request.pathname === '/rest/api/3/issue/PROJ-1') return response({ ...rawIssue('PROJ-1', 'One'), id: '98765' });
+      if (request.pathname.endsWith('/comment')) return response({ comments: [], total: 0 });
+      developmentUrls.push(request);
+      expect(request.searchParams.get('issueId')).toBe('98765');
+      if (request.pathname === '/rest/dev-status/latest/issue/summary') return response({ summary: {
+        branch: { overall: { count: 1 }, byInstanceType: { 'GitHub Enterprise': { count: 1 } } },
+        pullrequest: { overall: { count: 1 }, byInstanceType: { 'GitHub Enterprise': { count: 1 } } },
+      } });
+      expect(request.pathname).toBe('/rest/dev-status/latest/issue/detail');
+      expect(request.searchParams.get('applicationType')).toBe('GitHub Enterprise');
+      if (request.searchParams.get('dataType') === 'branch') return response({ detail: [{ branches: [{ name: 'feature/PROJ-1', url: 'https://github.com/acme/frontend/tree/feature/PROJ-1' }] }] });
+      expect(request.searchParams.get('dataType')).toBe('pullrequest');
+      return { status: 403, headers: {}, body: { error: 'private-response-token' } };
+    };
+    const request = {
+      ...config, issueKeys: ['PROJ-1'], outputDir,
+      outputProfile: { ...inlineProfile, templates: { 'issue.md.liquid': '{{ development.status }}\n{% for branch in development.branches %}{{ branch.name }}\n{% endfor %}' } },
+    };
+    const result = await (entrypoint === 'embedded' ? exportJiraMarkdown : exportRootJiraMarkdown)(request, { jiraGet });
+    expect(result.synced).toBe(1);
+    expect(result.issues[0]?.warnings?.join(' ')).toContain('HTTP 403');
+    expect(JSON.stringify(result)).not.toContain('private-response-token');
+    expect(developmentUrls).toHaveLength(3);
+    const markdown = await readFile(join(result.issues[0]!.issueDir!, 'issue.md'), 'utf8');
+    expect(markdown).toContain('partial');
+    expect(markdown).toContain('feature/PROJ-1');
+  });
+
   it('retains status identity in direct issue and task evidence reads, without inventing a missing ID', async () => {
     const issue = rawIssue('PROJ-1', 'One');
     const api = createJiraReadApi(embeddedConfig, { jiraGet: async () => response(issue) });
