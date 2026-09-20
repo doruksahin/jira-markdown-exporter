@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.6.0...v0.7.0) (2026-09-20)
+
+
+### Features
+
+* export linked Jira branches and pull requests ([#20](https://github.com/doruksahin/jira-markdown-exporter/issues/20)) ([2bf0f76](https://github.com/doruksahin/jira-markdown-exporter/commit/2bf0f763047c9689d274ebd3b504507cd9738f90))
+
 ## [0.6.0](https://github.com/doruksahin/jira-markdown-exporter/compare/v0.5.0...v0.6.0) (2026-09-08)
 
 
