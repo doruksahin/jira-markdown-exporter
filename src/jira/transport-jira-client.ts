@@ -10,6 +10,16 @@ import type { JiraReadClient } from './jira-read-client.js';
 export class JiraTransportReadClient implements JiraReadClient {
   constructor(private readonly config: Pick<JiraConfig, 'host'>, private readonly transport: JiraGetTransport) {}
 
+  getDevelopmentSummary(issueId: string): Promise<unknown> {
+    return jiraGetJson(this.config, this.transport, 'jira-development',
+      '/rest/dev-status/latest/issue/summary', { issueId });
+  }
+
+  getDevelopmentDetail(issueId: string, applicationType: string, dataType: 'branch' | 'pullrequest'): Promise<unknown> {
+    return jiraGetJson(this.config, this.transport, 'jira-development',
+      '/rest/dev-status/latest/issue/detail', { issueId, applicationType, dataType });
+  }
+
   searchIssues(parameters: Version3Parameters.SearchForIssuesUsingJqlEnhancedSearch): Promise<Version3Models.SearchAndReconcileResults> {
     return jiraGetJson(this.config, this.transport, 'jira-search', '/rest/api/3/search/jql', {
       jql: parameters.jql,

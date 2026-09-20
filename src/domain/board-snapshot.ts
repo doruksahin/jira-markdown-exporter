@@ -32,7 +32,31 @@ export interface BoardIssueLinkSnapshot {
   readonly assignee: string;
 }
 
+export interface DevelopmentBranch {
+  readonly name: string;
+  readonly url: string;
+  readonly repository: string;
+}
+
+export interface DevelopmentPullRequest {
+  readonly id: string;
+  readonly title: string;
+  readonly url: string;
+  readonly status: string;
+  readonly sourceBranch: string;
+  readonly targetBranch: string;
+  readonly repository: string;
+}
+
+export interface IssueDevelopment {
+  readonly status: 'available' | 'partial' | 'unavailable';
+  readonly branches: readonly DevelopmentBranch[];
+  readonly pullRequests: readonly DevelopmentPullRequest[];
+  readonly warnings: readonly string[];
+}
+
 export interface BoardIssueSnapshot {
+  readonly development?: IssueDevelopment;
   readonly key: string;
   readonly url: string;
   readonly summary: string;

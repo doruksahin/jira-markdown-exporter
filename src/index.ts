@@ -100,3 +100,5 @@ export type {
   JiraSprintRecord,
   JiraUserRecord,
 } from './jira/jira-read-api.js';
+
+export type { IssueDevelopment, DevelopmentBranch, DevelopmentPullRequest } from './domain/board-snapshot.js';

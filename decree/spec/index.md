@@ -9,5 +9,6 @@
 | SPEC-01KZR6678KTM854EJTMBJZ2GQJ | Implement standalone Jira Markdown Exporter v1 | implemented | 2026-08-11 |
 | SPEC-01M0AM89HG8P9AK0DS0EX9NZ1H | Injected Read-Only Transport for Embedded Jira Export | implemented | 2026-08-18 |
 | SPEC-01M1V30630WPBW8N8R11WBX08Q | Progressive Architecture Documentation and Link Checks | implemented | 2026-09-06 |
+| SPEC-01M2Z096B7XWDNBY2CSECG8JTZ | Read Jira development branches and pull requests | implemented | 2026-09-20 |
 
 <!-- GENERATED:decree-graph — do not edit below this line -->

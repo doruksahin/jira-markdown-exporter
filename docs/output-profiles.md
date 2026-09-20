@@ -104,12 +104,24 @@ Liquid templates receive a normalized, credential-free model:
 | `comments` | sorted `id`, `author`, `created`, `date`, `updatedNote`, `body` entries |
 | `linkedIssues` | sorted `relationship`, `key`, `url`, `summary`, `status`, `issueType`, `assignee` entries |
 | `attachments` | sorted `id`, `filename`, `mimeType`, `size`, `author`, `created`, `localPath` entries |
+| `development` | `status`, `branches`, `pullRequests`, `warnings` |
 | `sync` | `attachmentCount`, `downloadedAttachments`, `attachmentDownloadsEnabled`, `warnings` |
 
 `attachment.localPath` is empty unless its binary was downloaded. The Jira
 attachment content URL is intentionally absent. Existing inline media links
 have already been safely localized before `issue.description` reaches a
 template.
+
+`development.status` is `available`, `partial`, or `unavailable`. Branch entries
+contain `name`, `url`, and `repository` (name). Pull request entries contain
+`id`, `title`, `url`, `status`, `sourceBranch`, `targetBranch`, and `repository`
+(name). Arrays are deduplicated and sorted; only HTTP(S) links without URL
+credentials are accepted. Missing links are empty strings. An available empty
+result means Jira reported no branches or pull requests; an unavailable result
+must not be displayed as proof that none exist. Existing custom readers may
+omit snapshot development data, which templates receive as unavailable.
+Development warnings also appear in `sync.warnings` and the existing receipt
+warnings; they do not prevent the rest of an issue from being exported.
 
 Available filters are:
 

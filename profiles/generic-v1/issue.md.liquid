@@ -14,3 +14,24 @@
 | --- | --- | --- | --- | --- | --- |
 {% for link in linkedIssues %}| {{ link.relationship | tableCell }} | [{{ link.key }}](<{{ link.url }}>) | {{ link.summary | tableCell }} | {{ link.status | tableCell }} | {{ link.issueType | tableCell }} | {{ link.assignee | tableCell }} |
 {% endfor %}{% else %}_No linked issues._{% endif %}
+
+
+## Development
+
+{% if development.status == 'unavailable' %}_Development information is unavailable._
+{% elsif development.status == 'partial' %}_Development information is incomplete._
+{% endif %}{% if development.branches.size > 0 %}
+### Branches
+
+| Branch | Repository |
+| --- | --- |
+{% for branch in development.branches %}| {% if branch.url != blank %}[{{ branch.name | tableCell }}](<{{ branch.url }}>){% else %}{{ branch.name | tableCell }}{% endif %} | {{ branch.repository | tableCell }} |
+{% endfor %}{% endif %}{% if development.pullRequests.size > 0 %}
+### Pull requests
+
+| Pull request | Status | Source branch | Target branch | Repository |
+| --- | --- | --- | --- | --- |
+{% for pr in development.pullRequests %}| {% if pr.url != blank %}[{{ pr.title | tableCell }}](<{{ pr.url }}>){% else %}{{ pr.title | tableCell }}{% endif %} | {{ pr.status | tableCell }} | {{ pr.sourceBranch | tableCell }} | {{ pr.targetBranch | tableCell }} | {{ pr.repository | tableCell }} |
+{% endfor %}{% endif %}{% if development.status == 'available' and development.branches.size == 0 and development.pullRequests.size == 0 %}_No linked branches or pull requests._
+{% endif %}{% for warning in development.warnings %}- {{ warning }}
+{% endfor %}

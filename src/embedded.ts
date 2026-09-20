@@ -70,3 +70,5 @@ export type {
   JiraGetTransportResponse,
   TransportHeaders,
 } from './transport.js';
+
+export type { IssueDevelopment, DevelopmentBranch, DevelopmentPullRequest } from './domain/board-snapshot.js';

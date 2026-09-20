@@ -77,3 +77,10 @@ rejection. `pnpm check` runs typecheck and tests.
   the library does not read `process.env` or write stdout/stderr.
 - [x] Canonical profile assets are package exports and an in-memory profile
   renders through the same deterministic writer.
+
+## Development metadata review — 2026-09-20
+
+Reviewed against the current reader, profile model and writer. Their GET-only,
+consumer-neutral ownership remains applicable. The additive development metadata
+extension follows [SPEC-01M2Z096B7XWDNBY2CSECG8JTZ](spec-01m2z096b7xwdnby2csecg8jtz-read-jira-development-branches-and-pull-requests.md).
+Historical results and pending release evidence above are unchanged.

@@ -36,6 +36,27 @@ describe('generic-v1 writer', () => {
     expect(await readFile(join(first.issueDir, 'attachments', '20-design.png'))).toEqual(Buffer.from([1, 2, 3]));
   });
 
+  it('writes development links into the issue packet and refreshes changed branch metadata', async () => {
+    const outputDir = await temporaryDirectory();
+    const issue: BoardIssueSnapshot = {
+      ...fixtureIssue(),
+      development: {
+        status: 'available', warnings: [],
+        branches: [{ name: 'feature/PROJ-123', url: 'https://github.com/acme/frontend/tree/feature/PROJ-123', repository: 'frontend' }],
+        pullRequests: [{ id: '42', title: 'Implement feature', url: 'https://github.com/acme/frontend/pull/42', status: 'OPEN', sourceBranch: 'feature/PROJ-123', targetBranch: 'main', repository: 'frontend' }],
+      },
+    };
+    const result = await writeGenericSnapshot(issue, { outputDir });
+    const markdown = await readFile(join(result.issueDir, 'issue.md'), 'utf8');
+    expect(markdown).toContain('feature/PROJ-123');
+    expect(markdown).toContain('https://github.com/acme/frontend/pull/42');
+    expect(markdown).toContain('OPEN');
+    await writeGenericSnapshot({ ...issue, development: { status: 'available', branches: [], pullRequests: [], warnings: [] } }, { outputDir });
+    const refreshed = await readFile(join(result.issueDir, 'issue.md'), 'utf8');
+    expect(refreshed).not.toContain('feature/PROJ-123');
+    expect(refreshed).not.toContain('https://github.com/acme/frontend/pull/42');
+  });
+
   it('uses attachment IDs for collision-safe binary paths and inline localization', async () => {
     const outputDir = await temporaryDirectory();
     const base = fixtureIssue();
